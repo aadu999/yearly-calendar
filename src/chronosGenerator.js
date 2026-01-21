@@ -1,8 +1,10 @@
+
 const sharp = require('sharp');
-const { generateFontFaceSVG } = require('./font-embedder');
+const TextToSVG = require('text-to-svg');
+const path = require('path');
 const { getDailyContent } = require('./groqService');
 
-// Fallback quotes (used as backup when Groq API fails or is not configured)
+// Fallback quotes
 const FALLBACK_QUOTES = [
     "The future depends on what you do today.",
     "Time is the most valuable thing a man can spend.",
@@ -14,7 +16,7 @@ const FALLBACK_QUOTES = [
     "Do it now. Sometimes 'later' becomes 'never'."
 ];
 
-// Theme definitions - matching client-side themes exactly
+// Theme definitions
 const THEMES = {
     cyber: {
         name: 'Cyber',
@@ -50,10 +52,6 @@ const THEMES = {
     }
 };
 
-/**
- * Chronos 4K Generator - Matrix Grid Year Progress Visualization
- * Uses exact same zone-based layout as client-side for pixel-perfect matching
- */
 class ChronosGenerator {
     constructor(options = {}) {
         const now = options.date || new Date();
@@ -69,15 +67,12 @@ class ChronosGenerator {
         this.shape = options.shape || 'rounded';
         this.layout = options.device || 'desktop';
 
-        // Get theme colors
         this.colors = THEMES[this.theme] || THEMES.cyber;
 
-        // Get dimensions
         if (this.layout === 'mobile') {
             this.width = 2160;
             this.height = 3840;
         } else if (this.layout === 'iphone-lock') {
-            // iPhone 15/16 Pro Max resolution
             this.width = 1290;
             this.height = 2796;
         } else {
@@ -90,8 +85,86 @@ class ChronosGenerator {
             'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'
         ];
 
-        // Use fallback quote initially (will be replaced by async method)
         this.quote = FALLBACK_QUOTES[this.dayOfYear % FALLBACK_QUOTES.length];
+
+        // Initialize font engines
+        try {
+            // Check for fonts in different locations for different environments
+            const possiblePaths = [
+                path.join(__dirname, '../fonts/LiberationSans-Regular.ttf'),
+                path.join(__dirname, '../fonts/LiberationSans-Bold.ttf'),
+                // Fallback for Netlify/Vercel standard paths if needed
+                path.join(process.cwd(), 'fonts/LiberationSans-Regular.ttf'),
+                path.join(process.cwd(), 'fonts/LiberationSans-Bold.ttf'),
+            ];
+
+            let regularPath, boldPath;
+
+            // Find existing paths
+            for (const p of possiblePaths) {
+                try {
+                    require('fs').accessSync(p);
+                    if (p.includes('Regular') && !regularPath) regularPath = p;
+                    if (p.includes('Bold') && !boldPath) boldPath = p;
+                } catch (e) { }
+            }
+
+            if (!regularPath || !boldPath) {
+                console.warn('[Chronos] Fonts not found, using system fallback logic (this may fail on serverless)');
+                // If we can't find files, text-to-svg tries to look system-wide, but that fails on Lambda
+                // We'll rely on what we found or default to synchronous load from strict relative path
+                regularPath = regularPath || path.join(__dirname, '../fonts/LiberationSans-Regular.ttf');
+                boldPath = boldPath || path.join(__dirname, '../fonts/LiberationSans-Bold.ttf');
+            }
+
+            this.textToSVG = TextToSVG.loadSync(regularPath);
+            this.textToSVGBold = TextToSVG.loadSync(boldPath);
+        } catch (e) {
+            console.error('Failed to load local fonts for vectorization:', e);
+            // Fallback to whatever default text-to-svg has (likely none, so this will error later if not caught)
+        }
+    }
+
+    // Helper to generic SVG path from text
+    // options: { x, y, fontSize, anchor, attributes: { fill, etc } }
+    // anchor: 'top' | 'middle' | 'bottom'
+    textPath(text, x, y, fontSize, options = {}) {
+        const engine = options.fontWeight && (options.fontWeight === 'bold' || options.fontWeight >= 700)
+            ? this.textToSVGBold
+            : this.textToSVG;
+
+        if (!engine) return ''; // Should not happen if loaded correctly
+
+        const attributes = {
+            fill: options.fill || this.colors.text,
+            ...options.attributes
+        };
+
+        // TextToSVG anchors are different from SVG text-anchor
+        // We'll calculate metrics to position exactly
+        const metrics = engine.getMetrics(text, { fontSize });
+
+        let localX = x;
+        let localY = y;
+
+        // Alignment logic
+        if (options.anchor === 'middle' || options.anchor === 'center') {
+            localX -= metrics.width / 2;
+        } else if (options.anchor === 'end' || options.anchor === 'right') {
+            localX -= metrics.width;
+        }
+
+        // Vertical alignment approximation
+        // SVG text y is usually baseline. TextPath d is usually top-left based or similar depending on library
+        // TextToSVG generates path relative to baseline for y=0
+
+        // Pass to library
+        return engine.getD(text, {
+            x: localX,
+            y: localY,
+            fontSize,
+            attributes
+        });
     }
 
     async initializeQuote() {
@@ -99,7 +172,6 @@ class ChronosGenerator {
             this.quote = await getDailyContent(this.dayOfYear);
         } catch (error) {
             console.error('[ChronosGenerator] Error getting quote:', error);
-            // Keep fallback quote
         }
     }
 
@@ -114,7 +186,6 @@ class ChronosGenerator {
         return Math.floor(diff / oneDay);
     }
 
-    // EXACT zone-based layout from client
     getLayoutZones(isMobile) {
         if (isMobile) {
             return {
@@ -130,9 +201,7 @@ class ChronosGenerator {
     }
 
     async generate() {
-        // Initialize quote from Groq API (or use fallback)
         await this.initializeQuote();
-
         let svg;
         if (this.layout === 'mobile') {
             svg = this.generateMobileSVG();
@@ -141,25 +210,17 @@ class ChronosGenerator {
         } else {
             svg = this.generateDesktopSVG();
         }
-
-        const buffer = await sharp(Buffer.from(svg))
-            .png()
-            .toBuffer();
-
-        return buffer;
+        return await sharp(Buffer.from(svg)).png().toBuffer();
     }
 
     generateDesktopSVG() {
         const zones = this.getLayoutZones(false);
-
-        // Calculate absolute positions from zones
         const dateZone = {
             x: this.width * zones.date.left,
             y: this.height * zones.date.top,
             width: this.width * zones.date.width,
             height: this.height * zones.date.height
         };
-
         const gridZone = {
             x: this.width * zones.grid.left,
             y: this.height * zones.grid.top,
@@ -168,134 +229,65 @@ class ChronosGenerator {
         };
 
         let svg = `<svg width="${this.width}" height="${this.height}" xmlns="http://www.w3.org/2000/svg">`;
-
-        // Defs section with fonts and filters
-        svg += `<defs>
-            ${generateFontFaceSVG()}
-            <filter id="glow">
-                <feGaussianBlur stdDeviation="10" result="coloredBlur"/>
-                <feMerge>
-                    <feMergeNode in="coloredBlur"/>
-                    <feMergeNode in="SourceGraphic"/>
-                </feMerge>
-            </filter>
-        </defs>`;
-
-        // Background
+        svg += `<defs><filter id="glow"><feGaussianBlur stdDeviation="10" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
         svg += `<rect width="${this.width}" height="${this.height}" fill="${this.colors.bg}"/>`;
 
-        // Date Zone Content
         const dateSize = dateZone.width * 0.4;
         const dayText = this.currentDate.getDate().toString().padStart(2, '0');
 
-        // Day number
-        svg += `<text x="${dateZone.x}" y="${dateZone.y + dateSize * 0.9}"
-                font-family="DejaVu Sans"
-                font-size="${dateSize}" font-weight="900" fill="${this.colors.text}">${dayText}</text>`;
+        svg += `<path fill="${this.colors.text}" d="${this.textPath(dayText, dateZone.x, dateZone.y + dateSize * 0.9, dateSize, { fontWeight: 'bold' })}"/>`;
 
-        // Month and Year (positioned to the right of day number, smaller)
         const metaSize = dateSize * 0.25;
-        const metaX = dateZone.x + (dayText.length * dateSize * 0.6);
+        const dayMetrics = this.textToSVGBold.getMetrics(dayText, { fontSize: dateSize });
+        const metaX = dateZone.x + dayMetrics.width + (metaSize * 0.5);
         const metaY = dateZone.y + dateSize * 0.7;
 
-        svg += `<text x="${metaX}" y="${metaY}"
-                font-family="DejaVu Sans"
-                font-size="${metaSize}" font-weight="700" fill="${this.colors.accent}">${this.monthNames[this.currentDate.getMonth()]}</text>`;
+        svg += `<path fill="${this.colors.accent}" d="${this.textPath(this.monthNames[this.currentDate.getMonth()], metaX, metaY, metaSize, { fontWeight: 'bold' })}"/>`;
+        svg += `<path fill="${this.colors.secondary}" d="${this.textPath(this.currentYear.toString(), metaX, metaY + metaSize * 1.3, metaSize, { fontWeight: 'normal' })}"/>`;
 
-        svg += `<text x="${metaX}" y="${metaY + metaSize * 1.3}"
-                font-family="DejaVu Sans"
-                font-size="${metaSize}" font-weight="400" fill="${this.colors.secondary}">${this.currentYear}</text>`;
-
-        // Progress bar
         const barY = dateZone.y + dateSize + (dateZone.height * 0.08);
         const barHeight = dateZone.width * 0.06;
         const barWidth = dateZone.width;
 
-        // Background bar
-        svg += `<rect x="${dateZone.x}" y="${barY}" width="${barWidth}" height="${barHeight}"
-                rx="${barHeight / 2}" fill="${this.colors.muted}"/>`;
+        svg += `<rect x="${dateZone.x}" y="${barY}" width="${barWidth}" height="${barHeight}" rx="${barHeight / 2}" fill="${this.colors.muted}"/>`;
+        svg += `<rect x="${dateZone.x}" y="${barY}" width="${barWidth * this.progressPercent}" height="${barHeight}" rx="${barHeight / 2}" fill="${this.colors.accent}"/>`;
 
-        // Progress fill
-        svg += `<rect x="${dateZone.x}" y="${barY}" width="${barWidth * this.progressPercent}" height="${barHeight}"
-                rx="${barHeight / 2}" fill="${this.colors.accent}"/>`;
-
-        // Stats below progress bar
         const statsY = barY + barHeight + (barWidth * 0.08);
         const statNumSize = barWidth * 0.12;
         const statLabelSize = barWidth * 0.04;
 
-        // Left: Finished
-        svg += `<text x="${dateZone.x}" y="${statsY + statNumSize}"
-                font-family="DejaVu Sans"
-                font-size="${statNumSize}" font-weight="900" fill="${this.colors.text}">${this.dayOfYear}</text>`;
+        svg += `<path fill="${this.colors.text}" d="${this.textPath(this.dayOfYear.toString(), dateZone.x, statsY + statNumSize, statNumSize, { fontWeight: 'bold' })}"/>`;
+        svg += `<path fill="${this.colors.secondary}" d="${this.textPath('FINISHED', dateZone.x, statsY + statNumSize + statLabelSize + 10, statLabelSize, { fontWeight: 'normal' })}"/>`;
 
-        svg += `<text x="${dateZone.x}" y="${statsY + statNumSize + statLabelSize + 10}"
-                font-family="DejaVu Sans"
-                font-size="${statLabelSize}" font-weight="500" fill="${this.colors.secondary}">FINISHED</text>`;
-
-        // Right: Remaining
         const remainingText = this.remainingDays.toString();
-        const remainingNumWidth = remainingText.length * statNumSize * 0.6;
+        svg += `<path fill="${this.colors.text}" d="${this.textPath(remainingText, dateZone.x + barWidth, statsY + statNumSize, statNumSize, { fontWeight: 'bold', anchor: 'right' })}"/>`;
+        svg += `<path fill="${this.colors.secondary}" d="${this.textPath('REMAINING', dateZone.x + barWidth, statsY + statNumSize + statLabelSize + 10, statLabelSize, { fontWeight: 'normal', anchor: 'right' })}"/>`;
 
-        svg += `<text x="${dateZone.x + barWidth - remainingNumWidth}" y="${statsY + statNumSize}"
-                font-family="DejaVu Sans"
-                font-size="${statNumSize}" font-weight="900" fill="${this.colors.text}">${remainingText}</text>`;
-
-        svg += `<text x="${dateZone.x + barWidth}" y="${statsY + statNumSize + statLabelSize + 10}"
-                text-anchor="end" font-family="DejaVu Sans"
-                font-size="${statLabelSize}" font-weight="500" fill="${this.colors.secondary}">REMAINING</text>`;
-
-        // Quote - positioned at bottom of date zone
         const quoteY = dateZone.y + dateZone.height - (barWidth * 0.3);
         const quoteSize = barWidth * 0.065;
 
         // Quote mark
-        svg += `<text x="${dateZone.x}" y="${quoteY}"
-                font-family="Liberation Serif"
-                font-size="${barWidth * 0.2}" font-weight="900" fill="${this.colors.muted}" opacity="0.3">"</text>`;
+        svg += `<path fill="${this.colors.muted}" opacity="0.3" d="${this.textPath('"', dateZone.x, quoteY, barWidth * 0.2, { fontWeight: 'bold' })}"/>`;
 
-        // Quote text (wrapped)
-        const words = this.quote.split(' ');
-        let line = '';
-        let lines = [];
-        const maxChars = 30;
-
-        for (let word of words) {
-            const testLine = line + word + ' ';
-            if (testLine.length > maxChars && line.length > 0) {
-                lines.push(line.trim());
-                line = word + ' ';
-            } else {
-                line = testLine;
-            }
-        }
-        if (line.length > 0) lines.push(line.trim());
-
-        lines.forEach((l, i) => {
-            svg += `<text x="${dateZone.x + (barWidth * 0.12)}" y="${quoteY + (barWidth * 0.1) + i * quoteSize * 1.3}"
-                    font-family="DejaVu Sans"
-                    font-size="${quoteSize}" font-weight="300" font-style="italic"
-                    fill="${this.colors.text}" opacity="0.7">${l}</text>`;
+        // Wrapped Quote
+        const quoteLines = this.wrapText(this.quote, dateZone.width, quoteSize);
+        quoteLines.forEach((l, i) => {
+            svg += `<path fill="${this.colors.text}" opacity="0.7" d="${this.textPath(l, dateZone.x + (barWidth * 0.12), quoteY + (barWidth * 0.1) + i * quoteSize * 1.3, quoteSize, { fontWeight: 'normal' })}"/>`;
         });
 
-        // Matrix Grid
         svg += this.generateMatrixSVG(gridZone.x, gridZone.y, gridZone.width, gridZone.height, true);
-
         svg += '</svg>';
         return svg;
     }
 
     generateMobileSVG() {
         const zones = this.getLayoutZones(true);
-
-        // Calculate absolute positions from zones
         const dateZone = {
             x: this.width * zones.date.left,
             y: this.height * zones.date.top,
             width: this.width * zones.date.width,
             height: this.height * zones.date.height
         };
-
         const gridZone = {
             x: this.width * zones.grid.left,
             y: this.height * zones.grid.top,
@@ -304,120 +296,60 @@ class ChronosGenerator {
         };
 
         let svg = `<svg width="${this.width}" height="${this.height}" xmlns="http://www.w3.org/2000/svg">`;
-
-        // Defs section with fonts and filters
-        svg += `<defs>
-            ${generateFontFaceSVG()}
-            <filter id="glow">
-                <feGaussianBlur stdDeviation="10" result="coloredBlur"/>
-                <feMerge>
-                    <feMergeNode in="coloredBlur"/>
-                    <feMergeNode in="SourceGraphic"/>
-                </feMerge>
-            </filter>
-        </defs>`;
-
-
-        // Background
+        svg += `<defs><filter id="glow"><feGaussianBlur stdDeviation="10" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
         svg += `<rect width="${this.width}" height="${this.height}" fill="${this.colors.bg}"/>`;
 
-        // Date Zone Content
         const dateSize = dateZone.height * 0.5;
         const dayText = this.currentDate.getDate().toString().padStart(2, '0');
 
-        //Day number
-        svg += `<text x="${dateZone.x}" y="${dateZone.y + dateSize * 0.9}"
-                font-family="DejaVu Sans"
-                font-size="${dateSize}" font-weight="900" fill="${this.colors.text}">${dayText}</text>`;
+        svg += `<path fill="${this.colors.text}" d="${this.textPath(dayText, dateZone.x, dateZone.y + dateSize * 0.9, dateSize, { fontWeight: 'bold' })}"/>`;
 
-        // Month and Year
         const metaSize = dateSize * 0.25;
-        const metaX = dateZone.x + (dayText.length * dateSize * 0.6);
+        const dayMetrics = this.textToSVGBold.getMetrics(dayText, { fontSize: dateSize });
+        const metaX = dateZone.x + dayMetrics.width + (metaSize * 0.5);
         const metaY = dateZone.y + dateSize * 0.7;
 
-        svg += `<text x="${metaX}" y="${metaY}"
-                font-family="DejaVu Sans"
-                font-size="${metaSize}" font-weight="700" fill="${this.colors.accent}">${this.monthNames[this.currentDate.getMonth()]}</text>`;
+        svg += `<path fill="${this.colors.accent}" d="${this.textPath(this.monthNames[this.currentDate.getMonth()], metaX, metaY, metaSize, { fontWeight: 'bold' })}"/>`;
+        svg += `<path fill="${this.colors.secondary}" d="${this.textPath(this.currentYear.toString(), metaX, metaY + metaSize * 1.3, metaSize, { fontWeight: 'normal' })}"/>`;
 
-        svg += `<text x="${metaX}" y="${metaY + metaSize * 1.3}"
-                font-family="DejaVu Sans"
-                font-size="${metaSize}" font-weight="400" fill="${this.colors.secondary}">${this.currentYear}</text>`;
-
-        // Progress bar
         const barY = dateZone.y + dateSize + (metaSize * 2.8);
         const barHeight = metaSize * 0.3;
         const barWidth = dateZone.width;
 
-        // Background bar
-        svg += `<rect x="${dateZone.x}" y="${barY}" width="${barWidth}" height="${barHeight}"
-                rx="${barHeight / 2}" fill="${this.colors.muted}"/>`;
+        svg += `<rect x="${dateZone.x}" y="${barY}" width="${barWidth}" height="${barHeight}" rx="${barHeight / 2}" fill="${this.colors.muted}"/>`;
+        svg += `<rect x="${dateZone.x}" y="${barY}" width="${barWidth * this.progressPercent}" height="${barHeight}" rx="${barHeight / 2}" fill="${this.colors.accent}"/>`;
 
-        // Progress fill
-        svg += `<rect x="${dateZone.x}" y="${barY}" width="${barWidth * this.progressPercent}" height="${barHeight}"
-                rx="${barHeight / 2}" fill="${this.colors.accent}"/>`;
-
-        // Stats
         const labelY = barY + barHeight + (metaSize * 0.5);
         const labelSize = metaSize * 0.7;
 
-        svg += `<text x="${dateZone.x}" y="${labelY + labelSize}"
-                font-family="DejaVu Sans"
-                font-size="${labelSize}" font-weight="700" fill="${this.colors.secondary}">${this.dayOfYear} FINISHED</text>`;
+        svg += `<path fill="${this.colors.secondary}" d="${this.textPath(this.dayOfYear + ' FINISHED', dateZone.x, labelY + labelSize, labelSize, { fontWeight: 'bold' })}"/>`;
+        svg += `<path fill="${this.colors.secondary}" d="${this.textPath(this.remainingDays + ' REMAINING', dateZone.x + barWidth, labelY + labelSize, labelSize, { fontWeight: 'bold', anchor: 'right' })}"/>`;
 
-        svg += `<text x="${dateZone.x + barWidth}" y="${labelY + labelSize}" text-anchor="end"
-                font-family="DejaVu Sans"
-                font-size="${labelSize}" font-weight="700" fill="${this.colors.secondary}">${this.remainingDays} REMAINING</text>`;
-
-        // Quote - positioned right after the stats labels
         const quoteSize = metaSize * 0.6;
         const quoteY = labelY + labelSize + (metaSize * 1.2);
+        const quoteLines = this.wrapText('"' + this.quote + '"', dateZone.width, quoteSize);
 
-        // Wrap quote text to fit within width
-        svg += `<text x="${dateZone.x}" y="${quoteY}"
-                font-family="DejaVu Sans"
-                font-size="${quoteSize}" font-weight="300" font-style="italic"
-                fill="${this.colors.text}" opacity="0.6">"${this.quote}"</text>`;
+        quoteLines.forEach((l, i) => {
+            svg += `<path fill="${this.colors.text}" opacity="0.6" d="${this.textPath(l, dateZone.x, quoteY + i * quoteSize * 1.3, quoteSize, { fontWeight: 'normal' })}"/>`;
+        });
 
-        // Matrix Grid
         svg += this.generateMatrixSVG(gridZone.x, gridZone.y, gridZone.width, gridZone.height, false);
-
         svg += '</svg>';
         return svg;
     }
 
     generateiPhoneLockSVG() {
-        // iPhone lock screen layout with grid-only design
-        // Top 30% reserved for iOS lock screen (time, date, widgets)
-        // Content in middle 55%
-        // Bottom 15% for minimal info
-
         const topReserved = this.height * 0.30;
         const contentHeight = this.height * 0.55;
         const bottomReserved = this.height * 0.15;
-
         const contentY = topReserved;
         const padding = this.width * 0.05;
         const contentWidth = this.width - (padding * 2);
 
         let svg = `<svg width="${this.width}" height="${this.height}" xmlns="http://www.w3.org/2000/svg">`;
-
-        // Defs section with fonts and filters
-        svg += `<defs>
-            ${generateFontFaceSVG()}
-            <filter id="glow">
-                <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
-                <feMerge>
-                    <feMergeNode in="coloredBlur"/>
-                    <feMergeNode in="SourceGraphic"/>
-                </feMerge>
-            </filter>
-        </defs>`;
-
-
-        // Background
+        svg += `<defs><filter id="glow"><feGaussianBlur stdDeviation="6" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
         svg += `<rect width="${this.width}" height="${this.height}" fill="${this.colors.bg}"/>`;
 
-        // Week day labels at top of content area
         const DAYS_HEADER = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
         const currentDayOfWeek = this.currentDate.getDay();
         const labelSize = this.width * 0.04;
@@ -427,81 +359,45 @@ class ChronosGenerator {
         DAYS_HEADER.forEach((day, i) => {
             const color = (i === currentDayOfWeek) ? this.colors.accent : this.colors.secondary;
             const labelX = padding + (i * colWidth) + (colWidth / 2);
-            svg += `<text x="${labelX}" y="${labelY + labelSize * 0.6}"
-                    text-anchor="middle"
-                    font-family="DejaVu Sans"
-                    font-size="${labelSize}" font-weight="bold"
-                    fill="${color}">${day}</text>`;
+            svg += `<path fill="${color}" d="${this.textPath(day, labelX, labelY + labelSize * 0.6, labelSize, { fontWeight: 'bold', anchor: 'middle' })}"/>`;
         });
 
-        // Grid area
         const gridY = labelY + labelSize + (padding * 0.5);
         const gridHeight = contentHeight - labelSize - (padding * 1.5);
-
-        // Draw grid
         const firstDayOfYear = new Date(this.currentYear, 0, 1);
         const firstDayIndex = firstDayOfYear.getDay();
-
-        const cols = 7;
-        const rows = 53;
         const gap = this.width * 0.005;
+        const cellWidth = (contentWidth - (gap * 6)) / 7;
+        const cellHeight = (gridHeight - (gap * 52)) / 53;
 
-        const cellWidth = (contentWidth - (gap * (cols - 1))) / cols;
-        const cellHeight = (gridHeight - (gap * (rows - 1))) / rows;
-
-        // Draw all cells
         for (let i = 0; i < 371; i++) {
             const col = i % 7;
             const row = Math.floor(i / 7);
-
             const dIndex = (row * 7) + col - firstDayIndex;
 
-            if (dIndex < 0 || dIndex >= this.totalDays) {
-                continue;
-            }
+            if (dIndex < 0 || dIndex >= this.totalDays) continue;
 
             const dayNumber = dIndex + 1;
             const cellX = padding + col * (cellWidth + gap);
             const cellY = gridY + row * (cellHeight + gap);
-
-            // Determine color
-            let fill;
-            const isPast = dayNumber < this.dayOfYear;
             const isToday = dayNumber === this.dayOfYear;
+            const fill = isToday ? this.colors.accent : (dayNumber < this.dayOfYear ? this.colors.text : this.colors.secondary);
 
-            if (isToday) {
-                fill = this.colors.accent;
-            } else if (isPast) {
-                fill = this.colors.text;
-            } else {
-                fill = this.colors.secondary;
-            }
-
-            // Generate shape
             if (this.shape === 'circle') {
                 const radius = Math.min(cellWidth, cellHeight) / 2;
-                svg += `<circle cx="${cellX + cellWidth / 2}" cy="${cellY + cellHeight / 2}" r="${radius}"
-                        fill="${fill}"${isToday ? ' filter="url(#glow)"' : ''}/>`;
+                svg += `<circle cx="${cellX + cellWidth / 2}" cy="${cellY + cellHeight / 2}" r="${radius}" fill="${fill}"${isToday ? ' filter="url(#glow)"' : ''}/>`;
             } else if (this.shape === 'square') {
-                svg += `<rect x="${cellX}" y="${cellY}" width="${cellWidth}" height="${cellHeight}"
-                        fill="${fill}"${isToday ? ' filter="url(#glow)"' : ''}/>`;
+                svg += `<rect x="${cellX}" y="${cellY}" width="${cellWidth}" height="${cellHeight}" fill="${fill}"${isToday ? ' filter="url(#glow)"' : ''}/>`;
             } else {
                 const radius = Math.min(cellWidth, cellHeight) * 0.3;
-                svg += `<rect x="${cellX}" y="${cellY}" width="${cellWidth}" height="${cellHeight}"
-                        rx="${radius}" fill="${fill}"${isToday ? ' filter="url(#glow)"' : ''}/>`;
+                svg += `<rect x="${cellX}" y="${cellY}" width="${cellWidth}" height="${cellHeight}" rx="${radius}" fill="${fill}"${isToday ? ' filter="url(#glow)"' : ''}/>`;
             }
         }
 
-        // Bottom info: "Xd left · Y%"
         const bottomY = this.height - (bottomReserved / 2);
         const infoSize = this.width * 0.035;
         const percentComplete = Math.round(this.progressPercent * 100);
-
-        svg += `<text x="${this.width / 2}" y="${bottomY}"
-                text-anchor="middle"
-                font-family="DejaVu Sans"
-                font-size="${infoSize}" font-weight="500"
-                fill="${this.colors.accent}">${this.remainingDays}d left · ${percentComplete}%</text>`;
+        svg += `<path fill="${this.colors.accent}" d="${this.textPath(this.remainingDays + 'd left · ' + percentComplete + '%', this.width / 2, bottomY, infoSize, { fontWeight: 'bold', anchor: 'middle' })}"/>`;
 
         svg += '</svg>';
         return svg;
@@ -514,8 +410,6 @@ class ChronosGenerator {
         const currentDayOfWeek = this.currentDate.getDay();
 
         let svg = '';
-
-        // Calculate label size and adjust grid area
         const labelSize = isDesktop ? width * 0.03 : height * 0.04;
         let gridX = x;
         let gridY = y;
@@ -523,100 +417,76 @@ class ChronosGenerator {
         let gridHeight = height;
 
         if (isDesktop) {
-            // Labels on the left
             gridX += labelSize;
             gridWidth -= labelSize;
-
             const rowHeight = gridHeight / 7;
             DAYS_HEADER.forEach((day, i) => {
                 const color = (i === currentDayOfWeek) ? this.colors.accent : this.colors.secondary;
                 const labelY = y + (i * rowHeight) + (rowHeight / 2);
-                svg += `<text x="${x + labelSize / 2}" y="${labelY + labelSize * 0.2}"
-                        text-anchor="middle"
-                        font-family="DejaVu Sans"
-                        font-size="${labelSize * 0.5}" font-weight="bold"
-                        fill="${color}">${day}</text>`;
+                svg += `<path fill="${color}" d="${this.textPath(day, x + labelSize / 2, labelY + labelSize * 0.2, labelSize * 0.5, { fontWeight: 'bold', anchor: 'middle' })}"/>`;
             });
         } else {
-            // Labels on top
             gridY += labelSize;
             gridHeight -= labelSize;
-
             const colWidth = gridWidth / 7;
             DAYS_HEADER.forEach((day, i) => {
                 const color = (i === currentDayOfWeek) ? this.colors.accent : this.colors.secondary;
                 const labelX = x + (i * colWidth) + (colWidth / 2);
-                svg += `<text x="${labelX}" y="${y + labelSize * 0.6}"
-                        text-anchor="middle"
-                        font-family="DejaVu Sans"
-                        font-size="${labelSize * 0.5}" font-weight="bold"
-                        fill="${color}">${day}</text>`;
+                svg += `<path fill="${color}" d="${this.textPath(day, labelX, y + labelSize * 0.6, labelSize * 0.5, { fontWeight: 'bold', anchor: 'middle' })}"/>`;
             });
         }
 
-        // Calculate grid cells
         const cols = isDesktop ? 53 : 7;
         const rows = isDesktop ? 7 : 53;
         const gap = Math.min(gridWidth, gridHeight) * 0.002;
-
         const cellWidth = (gridWidth - (gap * (cols - 1))) / cols;
         const cellHeight = (gridHeight - (gap * (rows - 1))) / rows;
 
-        // Draw all 371 positions (53 weeks × 7 days)
         for (let i = 0; i < 371; i++) {
             let col, row;
+            if (isDesktop) { row = i % 7; col = Math.floor(i / 7); }
+            else { col = i % 7; row = Math.floor(i / 7); }
 
-            if (isDesktop) {
-                row = i % 7;
-                col = Math.floor(i / 7);
-            } else {
-                col = i % 7;
-                row = Math.floor(i / 7);
-            }
-
-            // Calculate day index with first day offset
-            const dIndex = isDesktop
-                ? (col * 7) + row - firstDayIndex
-                : (row * 7) + col - firstDayIndex;
-
-            // Skip if out of range
-            if (dIndex < 0 || dIndex >= this.totalDays) {
-                continue;
-            }
+            const dIndex = isDesktop ? (col * 7) + row - firstDayIndex : (row * 7) + col - firstDayIndex;
+            if (dIndex < 0 || dIndex >= this.totalDays) continue;
 
             const dayNumber = dIndex + 1;
             const cellX = gridX + col * (cellWidth + gap);
             const cellY = gridY + row * (cellHeight + gap);
-
-            // Determine color based on day status
-            let fill;
-            const isPast = dayNumber < this.dayOfYear;
             const isToday = dayNumber === this.dayOfYear;
+            const fill = isToday ? this.colors.accent : (dayNumber < this.dayOfYear ? this.colors.secondary : this.colors.muted);
 
-            if (isToday) {
-                fill = this.colors.accent;
-            } else if (isPast) {
-                fill = this.colors.secondary;
-            } else {
-                fill = this.colors.muted;
-            }
-
-            // Generate shape
             if (this.shape === 'circle') {
                 const radius = Math.min(cellWidth, cellHeight) / 2;
-                svg += `<circle cx="${cellX + cellWidth / 2}" cy="${cellY + cellHeight / 2}" r="${radius}"
-                        fill="${fill}"${isToday ? ' filter="url(#glow)"' : ''}/>`;
+                svg += `<circle cx="${cellX + cellWidth / 2}" cy="${cellY + cellHeight / 2}" r="${radius}" fill="${fill}"${isToday ? ' filter="url(#glow)"' : ''}/>`;
             } else if (this.shape === 'square') {
-                svg += `<rect x="${cellX}" y="${cellY}" width="${cellWidth}" height="${cellHeight}"
-                        fill="${fill}"${isToday ? ' filter="url(#glow)"' : ''}/>`;
-            } else { // rounded
+                svg += `<rect x="${cellX}" y="${cellY}" width="${cellWidth}" height="${cellHeight}" fill="${fill}"${isToday ? ' filter="url(#glow)"' : ''}/>`;
+            } else {
                 const radius = Math.min(cellWidth, cellHeight) * 0.3;
-                svg += `<rect x="${cellX}" y="${cellY}" width="${cellWidth}" height="${cellHeight}"
-                        rx="${radius}" fill="${fill}"${isToday ? ' filter="url(#glow)"' : ''}/>`;
+                svg += `<rect x="${cellX}" y="${cellY}" width="${cellWidth}" height="${cellHeight}" rx="${radius}" fill="${fill}"${isToday ? ' filter="url(#glow)"' : ''}/>`;
             }
         }
-
         return svg;
+    }
+
+    wrapText(text, maxWidth, fontSize) {
+        const words = text.split(' ');
+        const lines = [];
+        let currentLine = words[0];
+
+        for (let i = 1; i < words.length; i++) {
+            const word = words[i];
+            const testLine = currentLine + " " + word;
+            const metrics = this.textToSVG.getMetrics(testLine, { fontSize });
+            if (metrics.width < maxWidth) {
+                currentLine = testLine;
+            } else {
+                lines.push(currentLine);
+                currentLine = word;
+            }
+        }
+        lines.push(currentLine);
+        return lines;
     }
 }
 
