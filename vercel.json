@@ -3,7 +3,9 @@
     { "source": "/api/generate", "destination": "/api/generate" },
     { "source": "/api/info", "destination": "/api/index" },
     { "source": "/api", "destination": "/api/index" },
-    { "source": "/health", "destination": "/api/health" }
+    { "source": "/health", "destination": "/api/health" },
+    { "source": "/today-laptop", "destination": "/api/today-laptop" },
+    { "source": "/today-mobile", "destination": "/api/today-mobile" }
   ],
   "headers": [
     {
