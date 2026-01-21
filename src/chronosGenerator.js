@@ -169,11 +169,9 @@ class ChronosGenerator {
 
         let svg = `<svg width="${this.width}" height="${this.height}" xmlns="http://www.w3.org/2000/svg">`;
 
-        // Embed fonts as base64 data URIs
-        svg += generateFontFaceSVG();
-
-        // Add filters
+        // Defs section with fonts and filters
         svg += `<defs>
+            ${generateFontFaceSVG()}
             <filter id="glow">
                 <feGaussianBlur stdDeviation="10" result="coloredBlur"/>
                 <feMerge>
@@ -307,11 +305,9 @@ class ChronosGenerator {
 
         let svg = `<svg width="${this.width}" height="${this.height}" xmlns="http://www.w3.org/2000/svg">`;
 
-        // Embed fonts as base64 data URIs
-        svg += generateFontFaceSVG();
-
-        // Add filters
+        // Defs section with fonts and filters
         svg += `<defs>
+            ${generateFontFaceSVG()}
             <filter id="glow">
                 <feGaussianBlur stdDeviation="10" result="coloredBlur"/>
                 <feMerge>
@@ -405,11 +401,9 @@ class ChronosGenerator {
 
         let svg = `<svg width="${this.width}" height="${this.height}" xmlns="http://www.w3.org/2000/svg">`;
 
-        // Embed fonts as base64 data URIs
-        svg += generateFontFaceSVG();
-
-        // Add filters
+        // Defs section with fonts and filters
         svg += `<defs>
+            ${generateFontFaceSVG()}
             <filter id="glow">
                 <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
                 <feMerge>

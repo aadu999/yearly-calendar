@@ -74,7 +74,7 @@ function generateFontFaceSVG() {
         }
     ];
 
-    let fontFaces = '<defs><style type="text/css"><![CDATA[\n';
+    let fontFaces = '<style type="text/css"><![CDATA[\n';
     let successCount = 0;
 
     console.log('[Font Embedder] Starting font embedding...');
@@ -104,6 +104,7 @@ function generateFontFaceSVG() {
 
     if (successCount === 0) {
         console.error('[Font Embedder] WARNING: No fonts were embedded! Text may not render correctly.');
+        return ''; // Return empty string if no fonts
     }
 
     return fontFaces;
