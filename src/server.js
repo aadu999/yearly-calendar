@@ -61,9 +61,9 @@ app.get('/api/generate', async (req, res) => {
             });
         }
 
-        if (!['cyber', 'space', 'swiss'].includes(theme)) {
+        if (!['cyber', 'swiss', 'deep', 'slate'].includes(theme)) {
             return res.status(400).json({
-                error: 'Invalid theme. Please use "cyber", "space", or "swiss".'
+                error: 'Invalid theme. Please use "cyber", "swiss", "deep", or "slate".'
             });
         }
 
@@ -188,7 +188,7 @@ app.get('/api/info', (req, res) => {
                         type: 'string',
                         required: false,
                         default: 'cyber',
-                        options: ['cyber', 'space', 'swiss'],
+                        options: ['cyber', 'swiss', 'deep', 'slate'],
                         description: 'Color theme'
                     },
                     shape: {
@@ -213,7 +213,7 @@ app.get('/api/info', (req, res) => {
                         type: 'string',
                         required: false,
                         default: 'cyber',
-                        options: ['cyber', 'space', 'swiss'],
+                        options: ['cyber', 'swiss', 'deep', 'slate'],
                         description: 'Color theme'
                     },
                     shape: {
@@ -251,7 +251,7 @@ app.get('/api/info', (req, res) => {
                         type: 'string',
                         required: false,
                         default: 'cyber',
-                        options: ['cyber', 'space', 'swiss'],
+                        options: ['cyber', 'swiss', 'deep', 'slate'],
                         description: 'Color theme'
                     },
                     shape: {
@@ -281,9 +281,10 @@ app.get('/api/info', (req, res) => {
             }
         },
         themes: {
-            cyber: 'Neon Lime on Void Black',
-            space: 'Sky Blue on Navy',
-            swiss: 'International Red on White'
+            cyber: 'Cyber - Neon Lime on Void Black',
+            swiss: 'Swiss - International Red on Light Gray',
+            deep: 'Deep Space - Sky Blue on Navy',
+            slate: 'Monolith - Orange on Dark Brown'
         },
         shapes: {
             circle: 'Round cells',

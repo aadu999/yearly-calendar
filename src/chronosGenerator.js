@@ -29,28 +29,39 @@ const QUOTES = [
     "When you feel like quitting, think about why you started."
 ];
 
-// Theme definitions
+// Theme definitions - matching client-side themes exactly
 const THEMES = {
     cyber: {
+        name: 'Cyber',
         bg: '#050505',
-        accent: '#ccff00',
         text: '#ffffff',
-        muted: '#333333',
-        dim: '#1a1a1a'
-    },
-    space: {
-        bg: '#020617',
-        accent: '#38bdf8',
-        text: '#f0f9ff',
-        muted: '#1e3a5f',
-        dim: '#0f172a'
+        accent: '#ccff00',
+        secondary: '#262626',
+        muted: '#111111'
     },
     swiss: {
+        name: 'Swiss',
         bg: '#f0f0f0',
+        text: '#111111',
         accent: '#ff3b30',
-        text: '#050505',
-        muted: '#cccccc',
-        dim: '#e0e0e0'
+        secondary: '#d1d1d6',
+        muted: '#e5e5ea'
+    },
+    deep: {
+        name: 'Deep Space',
+        bg: '#020617',
+        text: '#f8fafc',
+        accent: '#38bdf8',
+        secondary: '#1e293b',
+        muted: '#0f172a'
+    },
+    slate: {
+        name: 'Monolith',
+        bg: '#1c1917',
+        text: '#e7e5e4',
+        accent: '#ea580c',
+        secondary: '#44403c',
+        muted: '#292524'
     }
 };
 
@@ -142,7 +153,7 @@ class ChronosGenerator {
 
         // Progress background
         svg += `<rect x="${padding}" y="${progressY}" width="${barWidth}" height="${barHeight}"
-                rx="${barHeight / 2}" fill="${this.colors.dim}"/>`;
+                rx="${barHeight / 2}" fill="${this.colors.muted}"/>`;
 
         // Progress fill with glow
         svg += `<defs>
@@ -181,7 +192,7 @@ class ChronosGenerator {
         const quoteHeight = this.height * 0.2;
 
         svg += `<rect x="${padding}" y="${quoteY}" width="${sidebarWidth}" height="${quoteHeight}"
-                rx="${this.width * 0.01}" fill="${this.colors.dim}"/>`;
+                rx="${this.width * 0.01}" fill="${this.colors.muted}"/>`;
 
         svg += `<rect x="${padding}" y="${quoteY}" width="4" height="${quoteHeight}"
                 fill="${this.colors.accent}"/>`;
@@ -268,7 +279,7 @@ class ChronosGenerator {
             </defs>`;
 
         svg += `<rect x="${padding}" y="${progressY}" width="${barWidth}" height="${barHeight}"
-                rx="${barHeight / 2}" fill="${this.colors.dim}"/>`;
+                rx="${barHeight / 2}" fill="${this.colors.muted}"/>`;
 
         svg += `<rect x="${padding}" y="${progressY}" width="${barWidth * progressPercent}" height="${barHeight}"
                 rx="${barHeight / 2}" fill="${this.colors.accent}" filter="url(#glow)"/>`;
@@ -306,54 +317,111 @@ class ChronosGenerator {
     }
 
     generateMatrixSVG(x, y, width, height, isDesktop) {
-        const cols = isDesktop ? 53 : 7;
-        const rows = isDesktop ? 7 : 53;
-        const gap = Math.min(width, height) * 0.003;
-
-        const cellWidth = (width - (gap * (cols - 1))) / cols;
-        const cellHeight = (height - (gap * (rows - 1))) / rows;
+        const DAYS_HEADER = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+        const firstDayOfYear = new Date(this.currentYear, 0, 1);
+        const firstDayIndex = firstDayOfYear.getDay(); // 0 = Sunday, 6 = Saturday
+        const currentDayOfWeek = this.currentDate.getDay();
 
         let svg = '';
 
-        for (let day = 1; day <= this.totalDays; day++) {
+        // Calculate label size and adjust grid area
+        const labelSize = isDesktop ? width * 0.03 : height * 0.04;
+        let gridX = x;
+        let gridY = y;
+        let gridWidth = width;
+        let gridHeight = height;
+
+        if (isDesktop) {
+            // Labels on the left
+            gridX += labelSize;
+            gridWidth -= labelSize;
+
+            const rowHeight = gridHeight / 7;
+            DAYS_HEADER.forEach((day, i) => {
+                const color = (i === currentDayOfWeek) ? this.colors.accent : this.colors.secondary;
+                const labelY = y + (i * rowHeight) + (rowHeight / 2);
+                svg += `<text x="${x + labelSize / 2}" y="${labelY}"
+                        text-anchor="middle" dominant-baseline="middle"
+                        font-family="Arial, sans-serif" font-size="${labelSize * 0.5}" font-weight="bold"
+                        fill="${color}">${day}</text>`;
+            });
+        } else {
+            // Labels on top
+            gridY += labelSize;
+            gridHeight -= labelSize;
+
+            const colWidth = gridWidth / 7;
+            DAYS_HEADER.forEach((day, i) => {
+                const color = (i === currentDayOfWeek) ? this.colors.accent : this.colors.secondary;
+                const labelX = x + (i * colWidth) + (colWidth / 2);
+                svg += `<text x="${labelX}" y="${y + labelSize / 2}"
+                        text-anchor="middle" dominant-baseline="middle"
+                        font-family="Arial, sans-serif" font-size="${labelSize * 0.5}" font-weight="bold"
+                        fill="${color}">${day}</text>`;
+            });
+        }
+
+        // Calculate grid cells
+        const cols = isDesktop ? 53 : 7;
+        const rows = isDesktop ? 7 : 53;
+        const gap = Math.min(gridWidth, gridHeight) * 0.002;
+
+        const cellWidth = (gridWidth - (gap * (cols - 1))) / cols;
+        const cellHeight = (gridHeight - (gap * (rows - 1))) / rows;
+
+        // Draw all 371 positions (53 weeks × 7 days)
+        for (let i = 0; i < 371; i++) {
             let col, row;
 
             if (isDesktop) {
-                col = Math.floor((day - 1) / 7);
-                row = (day - 1) % 7;
+                // Desktop: vertical layout (columns = weeks, rows = days of week)
+                row = i % 7;
+                col = Math.floor(i / 7);
             } else {
-                col = (day - 1) % 7;
-                row = Math.floor((day - 1) / 7);
+                // Mobile: horizontal layout (columns = days of week, rows = weeks)
+                col = i % 7;
+                row = Math.floor(i / 7);
             }
 
-            const cellX = x + (col * (cellWidth + gap));
-            const cellY = y + (row * (cellHeight + gap));
+            // Calculate day index with first day offset
+            const dIndex = isDesktop
+                ? (col * 7) + row - firstDayIndex
+                : (row * 7) + col - firstDayIndex;
 
-            // Determine color and opacity
-            let fill, opacity = 1, addGlow = false;
+            // Skip if out of range
+            if (dIndex < 0 || dIndex >= this.totalDays) {
+                continue;
+            }
 
-            if (day < this.dayOfYear) {
-                fill = this.colors.muted;
-            } else if (day === this.dayOfYear) {
+            const dayNumber = dIndex + 1; // Convert 0-indexed to 1-indexed
+            const cellX = gridX + (col * (cellWidth + gap));
+            const cellY = gridY + (row * (cellHeight + gap));
+
+            // Determine color based on day status
+            let fill;
+            const isPast = dayNumber < this.dayOfYear;
+            const isToday = dayNumber === this.dayOfYear;
+
+            if (isToday) {
                 fill = this.colors.accent;
-                addGlow = true;
+            } else if (isPast) {
+                fill = this.colors.secondary;
             } else {
-                fill = this.colors.dim;
-                opacity = 0.3;
+                fill = this.colors.muted;
             }
 
             // Generate shape
             if (this.shape === 'circle') {
                 const radius = Math.min(cellWidth, cellHeight) / 2;
                 svg += `<circle cx="${cellX + cellWidth / 2}" cy="${cellY + cellHeight / 2}" r="${radius}"
-                        fill="${fill}" opacity="${opacity}"${addGlow ? ' filter="url(#glow)"' : ''}/>`;
+                        fill="${fill}"${isToday ? ' filter="url(#glow)"' : ''}/>`;
             } else if (this.shape === 'square') {
                 svg += `<rect x="${cellX}" y="${cellY}" width="${cellWidth}" height="${cellHeight}"
-                        fill="${fill}" opacity="${opacity}"${addGlow ? ' filter="url(#glow)"' : ''}/>`;
+                        fill="${fill}"${isToday ? ' filter="url(#glow)"' : ''}/>`;
             } else { // rounded
-                const radius = Math.min(cellWidth, cellHeight) * 0.2;
+                const radius = Math.min(cellWidth, cellHeight) * 0.3;
                 svg += `<rect x="${cellX}" y="${cellY}" width="${cellWidth}" height="${cellHeight}"
-                        rx="${radius}" fill="${fill}" opacity="${opacity}"${addGlow ? ' filter="url(#glow)"' : ''}/>`;
+                        rx="${radius}" fill="${fill}"${isToday ? ' filter="url(#glow)"' : ''}/>`;
             }
         }
 
