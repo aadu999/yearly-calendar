@@ -74,7 +74,7 @@ function generateFontFaceSVG() {
         }
     ];
 
-    let fontFaces = '<style type="text/css"><![CDATA[\n';
+    let fontRules = '';
     let successCount = 0;
 
     console.log('[Font Embedder] Starting font embedding...');
@@ -87,7 +87,7 @@ function generateFontFaceSVG() {
             continue;
         }
 
-        fontFaces += `
+        fontRules += `
 @font-face {
     font-family: '${font.family}';
     src: url('data:font/truetype;charset=utf-8;base64,${base64}') format('truetype');
@@ -98,15 +98,13 @@ function generateFontFaceSVG() {
         successCount++;
     }
 
-    fontFaces += ']]></style>';
-
     console.log(`[Font Embedder] ✓ Successfully embedded ${successCount}/${fonts.length} fonts`);
 
     if (successCount === 0) {
         console.error('[Font Embedder] WARNING: No fonts were embedded! Text may not render correctly.');
     }
 
-    return fontFaces;
+    return fontRules;
 }
 
 module.exports = {

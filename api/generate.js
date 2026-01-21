@@ -1,4 +1,5 @@
 const ChronosGenerator = require('../src/chronosGenerator');
+const { initFonts } = require('../src/init-fonts');
 
 /**
  * Vercel Serverless Function for Chronos 4K Generation
@@ -17,6 +18,8 @@ module.exports = async (req, res) => {
     }
 
     try {
+        // Initialize fonts
+        initFonts();
 
         // Parse query parameters
         const year = parseInt(req.query.year) || new Date().getFullYear();
@@ -70,9 +73,9 @@ module.exports = async (req, res) => {
 
         const buffer = await generator.generate();
 
-        // Set response headers
+        // Set response headers - use inline to prevent downloads
         res.setHeader('Content-Type', 'image/png');
-        res.setHeader('Content-Disposition', `attachment; filename="chronos-${year}-${device}-${theme}.png"`);
+        res.setHeader('Content-Disposition', 'inline');
         res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate');
 
         // Send the image

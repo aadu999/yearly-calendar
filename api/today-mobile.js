@@ -4,9 +4,12 @@
  */
 
 const ChronosGenerator = require('../src/chronosGenerator');
+const { initFonts } = require('../src/init-fonts');
 
 module.exports = async (req, res) => {
     try {
+        // Initialize fonts
+        initFonts();
         const theme = req.query.theme || 'cyber';
         const shape = req.query.shape || 'rounded';
 

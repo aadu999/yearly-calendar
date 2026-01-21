@@ -1,6 +1,7 @@
 const sharp = require('sharp');
 const { generateFontFaceSVG } = require('./font-embedder');
 const { getDailyContent } = require('./groqService');
+const { initFonts } = require('./init-fonts');
 
 // Fallback quotes (used as backup when Groq API fails or is not configured)
 const FALLBACK_QUOTES = [
@@ -130,6 +131,13 @@ class ChronosGenerator {
     }
 
     async generate() {
+        // Initialize fonts (copies to /tmp/fonts for fallback)
+        try {
+            initFonts();
+        } catch (e) {
+            console.error('[ChronosGenerator] initFonts failed:', e.message);
+        }
+
         // Initialize quote from Groq API (or use fallback)
         await this.initializeQuote();
 
@@ -169,11 +177,11 @@ class ChronosGenerator {
 
         let svg = `<svg width="${this.width}" height="${this.height}" xmlns="http://www.w3.org/2000/svg">`;
 
-        // Embed fonts as base64 data URIs
-        svg += generateFontFaceSVG();
-
-        // Add filters
+        // Embed fonts in defs section for better renderer support
         svg += `<defs>
+            <style type="text/css">
+                ${generateFontFaceSVG()}
+            </style>
             <filter id="glow">
                 <feGaussianBlur stdDeviation="10" result="coloredBlur"/>
                 <feMerge>
@@ -307,11 +315,11 @@ class ChronosGenerator {
 
         let svg = `<svg width="${this.width}" height="${this.height}" xmlns="http://www.w3.org/2000/svg">`;
 
-        // Embed fonts as base64 data URIs
-        svg += generateFontFaceSVG();
-
-        // Add filters
+        // Embed fonts in defs section for better renderer support
         svg += `<defs>
+            <style type="text/css">
+                ${generateFontFaceSVG()}
+            </style>
             <filter id="glow">
                 <feGaussianBlur stdDeviation="10" result="coloredBlur"/>
                 <feMerge>
@@ -405,11 +413,11 @@ class ChronosGenerator {
 
         let svg = `<svg width="${this.width}" height="${this.height}" xmlns="http://www.w3.org/2000/svg">`;
 
-        // Embed fonts as base64 data URIs
-        svg += generateFontFaceSVG();
-
-        // Add filters
+        // Embed fonts in defs section for better renderer support
         svg += `<defs>
+            <style type="text/css">
+                ${generateFontFaceSVG()}
+            </style>
             <filter id="glow">
                 <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
                 <feMerge>
