@@ -4,33 +4,16 @@ const { initFonts } = require('./init-fonts');
 // Initialize fonts for serverless environments
 initFonts();
 
-// Quote Database
+// Quote Database - must match client exactly
 const QUOTES = [
-    "Focus on being productive instead of busy.",
-    "The future depends on what you do today.",
-    "Small daily improvements lead to stunning results.",
-    "Progress, not perfection.",
-    "Make each day your masterpiece.",
-    "The only way to do great work is to love what you do.",
-    "Dream big. Start small. Act now.",
-    "Consistency is the key to excellence.",
-    "Every expert was once a beginner.",
-    "Your limitation—it's only your imagination.",
-    "Great things never come from comfort zones.",
-    "Success doesn't just find you. You have to go out and get it.",
-    "The harder you work for something, the greater you'll feel when you achieve it.",
-    "Dream it. Wish it. Do it.",
-    "Don't stop when you're tired. Stop when you're done.",
-    "Wake up with determination. Go to bed with satisfaction.",
-    "Do something today that your future self will thank you for.",
-    "Little things make big days.",
-    "It's going to be hard, but hard does not mean impossible.",
-    "Don't wait for opportunity. Create it.",
-    "The key to success is to focus on goals, not obstacles.",
-    "Believe you can and you're halfway there.",
-    "Act as if what you do makes a difference. It does.",
-    "Success is what comes after you stop making excuses.",
-    "When you feel like quitting, think about why you started."
+  "The future depends on what you do today.",
+  "Time is the most valuable thing a man can spend.",
+  "Action is the foundational key to all success.",
+  "Don't count the days, make the days count.",
+  "Your time is limited, so don't waste it.",
+  "Focus on being productive instead of busy.",
+  "Simplicity is the ultimate sophistication.",
+  "Do it now. Sometimes 'later' becomes 'never'."
 ];
 
 // Theme definitions - matching client-side themes exactly
@@ -71,6 +54,7 @@ const THEMES = {
 
 /**
  * Chronos 4K Generator - Matrix Grid Year Progress Visualization
+ * Uses exact same zone-based layout as client-side for pixel-perfect matching
  */
 class ChronosGenerator {
     constructor(options = {}) {
@@ -80,6 +64,8 @@ class ChronosGenerator {
         this.currentYear = now.getFullYear();
         this.dayOfYear = this.getDayOfYear(now);
         this.totalDays = this.isLeapYear(this.currentYear) ? 366 : 365;
+        this.remainingDays = this.totalDays - this.dayOfYear;
+        this.progressPercent = this.dayOfYear / this.totalDays;
 
         this.theme = options.theme || 'cyber';
         this.shape = options.shape || 'rounded';
@@ -101,6 +87,8 @@ class ChronosGenerator {
             'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
             'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'
         ];
+
+        this.quote = QUOTES[this.dayOfYear % QUOTES.length];
     }
 
     isLeapYear(year) {
@@ -112,6 +100,21 @@ class ChronosGenerator {
         const diff = date - start;
         const oneDay = 1000 * 60 * 60 * 24;
         return Math.floor(diff / oneDay);
+    }
+
+    // EXACT zone-based layout from client
+    getLayoutZones(isMobile) {
+        if (isMobile) {
+            return {
+                date: { left: 0.05, top: 0.05, width: 0.90, height: 0.22 },
+                grid: { left: 0.05, top: 0.29, width: 0.90, height: 0.66 }
+            };
+        } else {
+            return {
+                date: { left: 0.05, top: 0.05, width: 0.30, height: 0.90 },
+                grid: { left: 0.40, top: 0.05, width: 0.55, height: 0.90 }
+            };
+        }
     }
 
     async generate() {
@@ -127,97 +130,118 @@ class ChronosGenerator {
     }
 
     generateDesktopSVG() {
-        const padding = this.width * 0.03;
-        const gap = this.width * 0.02;
-        const sidebarWidth = this.width * 0.28;
+        const zones = this.getLayoutZones(false);
+
+        // Calculate absolute positions from zones
+        const dateZone = {
+            x: this.width * zones.date.left,
+            y: this.height * zones.date.top,
+            width: this.width * zones.date.width,
+            height: this.height * zones.date.height
+        };
+
+        const gridZone = {
+            x: this.width * zones.grid.left,
+            y: this.height * zones.grid.top,
+            width: this.width * zones.grid.width,
+            height: this.height * zones.grid.height
+        };
 
         let svg = `<svg width="${this.width}" height="${this.height}" xmlns="http://www.w3.org/2000/svg">`;
+
+        // Add glow filter
+        svg += `<defs>
+            <filter id="glow">
+                <feGaussianBlur stdDeviation="10" result="coloredBlur"/>
+                <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+            </filter>
+        </defs>`;
 
         // Background
         svg += `<rect width="${this.width}" height="${this.height}" fill="${this.colors.bg}"/>`;
 
-        // Date Display
-        svg += `<text x="${padding}" y="${padding + this.width * 0.11}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.12}" font-weight="900"
-                fill="${this.colors.text}">${this.currentDate.getDate()}</text>`;
+        // Date Zone Content
+        const dateSize = dateZone.width * 0.4;
+        const dayText = this.currentDate.getDate().toString().padStart(2, '0');
 
-        svg += `<text x="${padding}" y="${padding + this.width * 0.14}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.025}" font-weight="700"
-                fill="${this.colors.accent}">${this.monthNames[this.currentDate.getMonth()]}</text>`;
+        // Day number
+        svg += `<text x="${dateZone.x}" y="${dateZone.y + dateSize * 0.9}"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-size="${dateSize}" font-weight="900" fill="${this.colors.text}">${dayText}</text>`;
 
-        svg += `<text x="${padding}" y="${padding + this.width * 0.165}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.018}" font-weight="300"
-                fill="${this.colors.muted}">${this.currentYear}</text>`;
+        // Month and Year (positioned to the right of day number, smaller)
+        const metaSize = dateSize * 0.25;
+        const metaX = dateZone.x + (dayText.length * dateSize * 0.6);
+        const metaY = dateZone.y + dateSize * 0.7;
 
-        // Progress Bar
-        const progressY = padding + this.width * 0.22;
-        const barHeight = this.height * 0.012;
-        const barWidth = sidebarWidth;
-        const progressPercent = this.dayOfYear / this.totalDays;
+        svg += `<text x="${metaX}" y="${metaY}"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-size="${metaSize}" font-weight="700" fill="${this.colors.accent}">${this.monthNames[this.currentDate.getMonth()]}</text>`;
 
-        // Progress background
-        svg += `<rect x="${padding}" y="${progressY}" width="${barWidth}" height="${barHeight}"
+        svg += `<text x="${metaX}" y="${metaY + metaSize * 1.3}"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-size="${metaSize}" font-weight="400" fill="${this.colors.secondary}">${this.currentYear}</text>`;
+
+        // Progress bar
+        const barY = dateZone.y + dateSize + (dateZone.height * 0.08);
+        const barHeight = dateZone.width * 0.06;
+        const barWidth = dateZone.width;
+
+        // Background bar
+        svg += `<rect x="${dateZone.x}" y="${barY}" width="${barWidth}" height="${barHeight}"
                 rx="${barHeight / 2}" fill="${this.colors.muted}"/>`;
 
-        // Progress fill with glow
-        svg += `<defs>
-                <filter id="glow">
-                    <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-                    <feMerge>
-                        <feMergeNode in="coloredBlur"/>
-                        <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
-                </filter>
-            </defs>`;
+        // Progress fill
+        svg += `<rect x="${dateZone.x}" y="${barY}" width="${barWidth * this.progressPercent}" height="${barHeight}"
+                rx="${barHeight / 2}" fill="${this.colors.accent}"/>`;
 
-        svg += `<rect x="${padding}" y="${progressY}" width="${barWidth * progressPercent}" height="${barHeight}"
-                rx="${barHeight / 2}" fill="${this.colors.accent}" filter="url(#glow)"/>`;
+        // Stats below progress bar
+        const statsY = barY + barHeight + (barWidth * 0.08);
+        const statNumSize = barWidth * 0.12;
+        const statLabelSize = barWidth * 0.04;
 
-        // Stats
-        const statsY = progressY + barHeight + this.height * 0.04;
-        svg += `<text x="${padding}" y="${statsY}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.05}" font-weight="900"
-                fill="${this.colors.text}">${this.dayOfYear}</text>`;
+        // Left: Finished
+        svg += `<text x="${dateZone.x}" y="${statsY + statNumSize}"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-size="${statNumSize}" font-weight="900" fill="${this.colors.text}">${this.dayOfYear}</text>`;
 
-        svg += `<text x="${padding}" y="${statsY + this.height * 0.03}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.01}" font-weight="600"
-                fill="${this.colors.muted}">FINISHED</text>`;
+        svg += `<text x="${dateZone.x}" y="${statsY + statNumSize + statLabelSize + 10}"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-size="${statLabelSize}" font-weight="500" fill="${this.colors.secondary}">FINISHED</text>`;
 
-        svg += `<text x="${padding + sidebarWidth * 0.55}" y="${statsY}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.05}" font-weight="900"
-                fill="${this.colors.text}">${this.totalDays - this.dayOfYear}</text>`;
+        // Right: Remaining
+        const remainingText = this.remainingDays.toString();
+        const remainingNumWidth = remainingText.length * statNumSize * 0.6;
 
-        svg += `<text x="${padding + sidebarWidth * 0.55}" y="${statsY + this.height * 0.03}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.01}" font-weight="600"
-                fill="${this.colors.muted}">REMAINING</text>`;
+        svg += `<text x="${dateZone.x + barWidth - remainingNumWidth}" y="${statsY + statNumSize}"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-size="${statNumSize}" font-weight="900" fill="${this.colors.text}">${remainingText}</text>`;
 
-        // Quote Card
-        const quoteY = this.height - padding - this.height * 0.25;
-        const quoteHeight = this.height * 0.2;
+        svg += `<text x="${dateZone.x + barWidth}" y="${statsY + statNumSize + statLabelSize + 10}"
+                text-anchor="end" font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-size="${statLabelSize}" font-weight="500" fill="${this.colors.secondary}">REMAINING</text>`;
 
-        svg += `<rect x="${padding}" y="${quoteY}" width="${sidebarWidth}" height="${quoteHeight}"
-                rx="${this.width * 0.01}" fill="${this.colors.muted}"/>`;
-
-        svg += `<rect x="${padding}" y="${quoteY}" width="4" height="${quoteHeight}"
-                fill="${this.colors.accent}"/>`;
+        // Quote - positioned at bottom of date zone
+        const quoteY = dateZone.y + dateZone.height - (barWidth * 0.25);
+        const quoteSize = barWidth * 0.065;
 
         // Quote mark
-        svg += `<text x="${padding + this.width * 0.015}" y="${quoteY + this.height * 0.1}"
-                font-family="Liberation Serif, DejaVu Serif, Georgia, serif" font-size="${this.width * 0.12}" font-style="italic" font-weight="900"
-                fill="${this.colors.muted}" opacity="0.15">"</text>`;
+        svg += `<text x="${dateZone.x}" y="${quoteY}"
+                font-family="Liberation Serif, DejaVu Serif, Georgia, serif"
+                font-size="${barWidth * 0.2}" font-weight="900" fill="${this.colors.muted}" opacity="0.3">"</text>`;
 
         // Quote text (wrapped)
-        const quoteIndex = this.dayOfYear % QUOTES.length;
-        const quoteText = QUOTES[quoteIndex];
-        const words = quoteText.split(' ');
+        const words = this.quote.split(' ');
         let line = '';
         let lines = [];
-        const maxWidth = sidebarWidth - this.width * 0.04;
-        const charWidth = this.width * 0.013 * 0.55; // Approximate
+        const maxChars = 30;
 
         for (let word of words) {
             const testLine = line + word + ' ';
-            if (testLine.length * charWidth > maxWidth && line.length > 0) {
+            if (testLine.length > maxChars && line.length > 0) {
                 lines.push(line.trim());
                 line = word + ' ';
             } else {
@@ -227,94 +251,111 @@ class ChronosGenerator {
         if (line.length > 0) lines.push(line.trim());
 
         lines.forEach((l, i) => {
-            svg += `<text x="${padding + this.width * 0.02}" y="${quoteY + this.height * 0.08 + i * this.width * 0.02}"
-                    font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.013}" font-weight="300" font-style="italic"
-                    fill="${this.colors.text}">${l}</text>`;
+            svg += `<text x="${dateZone.x + (barWidth * 0.12)}" y="${quoteY + (barWidth * 0.1) + i * quoteSize * 1.3}"
+                    font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                    font-size="${quoteSize}" font-weight="300" font-style="italic"
+                    fill="${this.colors.text}" opacity="0.7">${l}</text>`;
         });
 
         // Matrix Grid
-        const matrixX = sidebarWidth + gap + padding;
-        const matrixWidth = this.width - matrixX - padding;
-        const matrixHeight = this.height - (padding * 2);
-
-        svg += this.generateMatrixSVG(matrixX, padding, matrixWidth, matrixHeight, true);
+        svg += this.generateMatrixSVG(gridZone.x, gridZone.y, gridZone.width, gridZone.height, true);
 
         svg += '</svg>';
         return svg;
     }
 
     generateMobileSVG() {
-        const padding = this.width * 0.03;
-        const gap = this.width * 0.02;
-        const headerHeight = this.height * 0.22;
+        const zones = this.getLayoutZones(true);
+
+        // Calculate absolute positions from zones
+        const dateZone = {
+            x: this.width * zones.date.left,
+            y: this.height * zones.date.top,
+            width: this.width * zones.date.width,
+            height: this.height * zones.date.height
+        };
+
+        const gridZone = {
+            x: this.width * zones.grid.left,
+            y: this.height * zones.grid.top,
+            width: this.width * zones.grid.width,
+            height: this.height * zones.grid.height
+        };
 
         let svg = `<svg width="${this.width}" height="${this.height}" xmlns="http://www.w3.org/2000/svg">`;
+
+        // Add glow filter
+        svg += `<defs>
+            <filter id="glow">
+                <feGaussianBlur stdDeviation="10" result="coloredBlur"/>
+                <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+            </filter>
+        </defs>`;
 
         // Background
         svg += `<rect width="${this.width}" height="${this.height}" fill="${this.colors.bg}"/>`;
 
-        // Date Display
-        svg += `<text x="${padding}" y="${padding + this.width * 0.16}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.18}" font-weight="900"
-                fill="${this.colors.text}">${this.currentDate.getDate()}</text>`;
+        // Date Zone Content
+        const dateSize = dateZone.height * 0.5;
+        const dayText = this.currentDate.getDate().toString().padStart(2, '0');
 
-        svg += `<text x="${padding}" y="${padding + this.width * 0.22}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.05}" font-weight="700"
-                fill="${this.colors.accent}">${this.monthNames[this.currentDate.getMonth()]}</text>`;
+        // Day number
+        svg += `<text x="${dateZone.x}" y="${dateZone.y + dateSize * 0.9}"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-size="${dateSize}" font-weight="900" fill="${this.colors.text}">${dayText}</text>`;
 
-        svg += `<text x="${padding}" y="${padding + this.width * 0.26}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.035}" font-weight="300"
-                fill="${this.colors.muted}">${this.currentYear}</text>`;
+        // Month and Year
+        const metaSize = dateSize * 0.25;
+        const metaX = dateZone.x + (dayText.length * dateSize * 0.6);
+        const metaY = dateZone.y + dateSize * 0.7;
 
-        // Progress Bar
-        const progressY = padding + this.width * 0.32;
-        const barHeight = this.height * 0.008;
-        const barWidth = this.width - (padding * 2);
-        const progressPercent = this.dayOfYear / this.totalDays;
+        svg += `<text x="${metaX}" y="${metaY}"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-size="${metaSize}" font-weight="700" fill="${this.colors.accent}">${this.monthNames[this.currentDate.getMonth()]}</text>`;
 
-        svg += `<defs>
-                <filter id="glow">
-                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                    <feMerge>
-                        <feMergeNode in="coloredBlur"/>
-                        <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
-                </filter>
-            </defs>`;
+        svg += `<text x="${metaX}" y="${metaY + metaSize * 1.3}"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-size="${metaSize}" font-weight="400" fill="${this.colors.secondary}">${this.currentYear}</text>`;
 
-        svg += `<rect x="${padding}" y="${progressY}" width="${barWidth}" height="${barHeight}"
+        // Progress bar
+        const barY = dateZone.y + dateSize + (metaSize * 2.8);
+        const barHeight = metaSize * 0.3;
+        const barWidth = dateZone.width;
+
+        // Background bar
+        svg += `<rect x="${dateZone.x}" y="${barY}" width="${barWidth}" height="${barHeight}"
                 rx="${barHeight / 2}" fill="${this.colors.muted}"/>`;
 
-        svg += `<rect x="${padding}" y="${progressY}" width="${barWidth * progressPercent}" height="${barHeight}"
-                rx="${barHeight / 2}" fill="${this.colors.accent}" filter="url(#glow)"/>`;
+        // Progress fill
+        svg += `<rect x="${dateZone.x}" y="${barY}" width="${barWidth * this.progressPercent}" height="${barHeight}"
+                rx="${barHeight / 2}" fill="${this.colors.accent}"/>`;
 
         // Stats
-        const statsY = progressY + barHeight + this.height * 0.025;
-        svg += `<text x="${padding}" y="${statsY}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.11}" font-weight="900"
-                fill="${this.colors.text}">${this.dayOfYear}</text>`;
+        const labelY = barY + barHeight + (metaSize * 0.5);
+        const labelSize = metaSize * 0.7;
 
-        svg += `<text x="${padding}" y="${statsY + this.height * 0.02}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.028}" font-weight="600"
-                fill="${this.colors.muted}">FINISHED</text>`;
+        svg += `<text x="${dateZone.x}" y="${labelY + labelSize}"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-size="${labelSize}" font-weight="700" fill="${this.colors.secondary}">${this.dayOfYear} FINISHED</text>`;
 
-        // Right-aligned remaining
-        const remainingText = (this.totalDays - this.dayOfYear).toString();
-        const remainingWidth = remainingText.length * this.width * 0.11 * 0.6;
+        svg += `<text x="${dateZone.x + barWidth}" y="${labelY + labelSize}" text-anchor="end"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-size="${labelSize}" font-weight="700" fill="${this.colors.secondary}">${this.remainingDays} REMAINING</text>`;
 
-        svg += `<text x="${this.width - padding - remainingWidth}" y="${statsY}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.11}" font-weight="900"
-                fill="${this.colors.text}">${remainingText}</text>`;
+        // Quote
+        const quoteY = labelY + (metaSize * 1.2);
+        const quoteSize = metaSize * 0.6;
 
-        svg += `<text x="${this.width - padding - this.width * 0.28}" y="${statsY + this.height * 0.02}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.028}" font-weight="600"
-                fill="${this.colors.muted}">REMAINING</text>`;
+        svg += `<text x="${dateZone.x}" y="${quoteY + quoteSize}"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-size="${quoteSize}" font-weight="300" font-style="italic"
+                fill="${this.colors.text}" opacity="0.6">"${this.quote}"</text>`;
 
         // Matrix Grid
-        const matrixY = headerHeight + gap;
-        const matrixHeight = this.height - matrixY - padding;
-
-        svg += this.generateMatrixSVG(padding, matrixY, this.width - (padding * 2), matrixHeight, false);
+        svg += this.generateMatrixSVG(gridZone.x, gridZone.y, gridZone.width, gridZone.height, false);
 
         svg += '</svg>';
         return svg;
@@ -323,7 +364,7 @@ class ChronosGenerator {
     generateMatrixSVG(x, y, width, height, isDesktop) {
         const DAYS_HEADER = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
         const firstDayOfYear = new Date(this.currentYear, 0, 1);
-        const firstDayIndex = firstDayOfYear.getDay(); // 0 = Sunday, 6 = Saturday
+        const firstDayIndex = firstDayOfYear.getDay();
         const currentDayOfWeek = this.currentDate.getDay();
 
         let svg = '';
@@ -344,9 +385,10 @@ class ChronosGenerator {
             DAYS_HEADER.forEach((day, i) => {
                 const color = (i === currentDayOfWeek) ? this.colors.accent : this.colors.secondary;
                 const labelY = y + (i * rowHeight) + (rowHeight / 2);
-                svg += `<text x="${x + labelSize / 2}" y="${labelY}"
-                        text-anchor="middle" dominant-baseline="middle"
-                        font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${labelSize * 0.5}" font-weight="bold"
+                svg += `<text x="${x + labelSize / 2}" y="${labelY + labelSize * 0.2}"
+                        text-anchor="middle"
+                        font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                        font-size="${labelSize * 0.5}" font-weight="bold"
                         fill="${color}">${day}</text>`;
             });
         } else {
@@ -358,9 +400,10 @@ class ChronosGenerator {
             DAYS_HEADER.forEach((day, i) => {
                 const color = (i === currentDayOfWeek) ? this.colors.accent : this.colors.secondary;
                 const labelX = x + (i * colWidth) + (colWidth / 2);
-                svg += `<text x="${labelX}" y="${y + labelSize / 2}"
-                        text-anchor="middle" dominant-baseline="middle"
-                        font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${labelSize * 0.5}" font-weight="bold"
+                svg += `<text x="${labelX}" y="${y + labelSize * 0.6}"
+                        text-anchor="middle"
+                        font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                        font-size="${labelSize * 0.5}" font-weight="bold"
                         fill="${color}">${day}</text>`;
             });
         }
@@ -378,11 +421,9 @@ class ChronosGenerator {
             let col, row;
 
             if (isDesktop) {
-                // Desktop: vertical layout (columns = weeks, rows = days of week)
                 row = i % 7;
                 col = Math.floor(i / 7);
             } else {
-                // Mobile: horizontal layout (columns = days of week, rows = weeks)
                 col = i % 7;
                 row = Math.floor(i / 7);
             }
@@ -397,9 +438,9 @@ class ChronosGenerator {
                 continue;
             }
 
-            const dayNumber = dIndex + 1; // Convert 0-indexed to 1-indexed
-            const cellX = gridX + (col * (cellWidth + gap));
-            const cellY = gridY + (row * (cellHeight + gap));
+            const dayNumber = dIndex + 1;
+            const cellX = gridX + col * (cellWidth + gap);
+            const cellY = gridY + row * (cellHeight + gap);
 
             // Determine color based on day status
             let fill;
