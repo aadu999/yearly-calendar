@@ -1,9 +1,9 @@
 const sharp = require('sharp');
 const { initFonts } = require('./init-fonts');
+const { generateFontFaceSVG } = require('./font-embedder');
 
-// NOTE: Do NOT initialize fonts here at module load time!
-// Font initialization happens at request time in each API endpoint
-// This ensures proper access to /tmp in Vercel's serverless environment
+// NOTE: Fonts are now embedded directly in SVG as base64 data URIs
+// This bypasses fontconfig completely and ensures fonts work in serverless environments
 
 // Quote Database - must match client exactly
 const QUOTES = [
@@ -159,8 +159,9 @@ class ChronosGenerator {
 
         let svg = `<svg width="${this.width}" height="${this.height}" xmlns="http://www.w3.org/2000/svg">`;
 
-        // Add glow filter
-        svg += `<defs>
+        // Add embedded fonts and filters
+        svg += generateFontFaceSVG();
+        svg += `
             <filter id="glow">
                 <feGaussianBlur stdDeviation="10" result="coloredBlur"/>
                 <feMerge>
@@ -294,8 +295,9 @@ class ChronosGenerator {
 
         let svg = `<svg width="${this.width}" height="${this.height}" xmlns="http://www.w3.org/2000/svg">`;
 
-        // Add glow filter
-        svg += `<defs>
+        // Add embedded fonts and filters
+        svg += generateFontFaceSVG();
+        svg += `
             <filter id="glow">
                 <feGaussianBlur stdDeviation="10" result="coloredBlur"/>
                 <feMerge>
@@ -388,8 +390,9 @@ class ChronosGenerator {
 
         let svg = `<svg width="${this.width}" height="${this.height}" xmlns="http://www.w3.org/2000/svg">`;
 
-        // Add glow filter
-        svg += `<defs>
+        // Add embedded fonts and filters
+        svg += generateFontFaceSVG();
+        svg += `
             <filter id="glow">
                 <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
                 <feMerge>
