@@ -1,10 +1,9 @@
 const sharp = require('sharp');
 const { initFonts } = require('./init-fonts');
 
-// Initialize fonts for serverless environments
-console.log('[ChronosGenerator] Initializing fonts...');
-initFonts();
-console.log('[ChronosGenerator] Sharp version:', sharp.versions);
+// NOTE: Do NOT initialize fonts here at module load time!
+// Font initialization happens at request time in each API endpoint
+// This ensures proper access to /tmp in Vercel's serverless environment
 
 // Quote Database - must match client exactly
 const QUOTES = [
