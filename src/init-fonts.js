@@ -96,12 +96,18 @@ function initFonts() {
             fs.mkdirSync(fontconfigDir, { recursive: true });
         }
 
-        // Create fontconfig XML file
+        // Create fontconfig XML file that includes both our fonts and system fonts
         const fontconfigPath = path.join(fontconfigDir, 'fonts.conf');
         const fontconfigContent = `<?xml version="1.0"?>
 <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
 <fontconfig>
+  <!-- Our bundled fonts -->
   <dir>/tmp/fonts</dir>
+
+  <!-- System font directories (for DejaVu, etc) -->
+  <dir>/usr/share/fonts</dir>
+  <dir>/usr/local/share/fonts</dir>
+
   <cachedir>/tmp/fontconfig/cache</cachedir>
   <config>
     <rescan>
