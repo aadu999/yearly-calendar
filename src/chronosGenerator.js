@@ -1,10 +1,10 @@
 const sharp = require('sharp');
 const { initFonts } = require('./init-fonts');
 
-// NOTE: librsvg in Vercel doesn't support @font-face with data URIs
-// Using DejaVu fonts which are pre-installed in Vercel's environment
-const FONT_SANS = 'DejaVu Sans, sans-serif';
-const FONT_SERIF = 'DejaVu Serif, serif';
+// NOTE: Using Liberation fonts which we copy to /tmp/fonts via initFonts()
+// Vercel has NO pre-installed fonts, so we must use our bundled Liberation fonts
+const FONT_SANS = 'Liberation Sans, sans-serif';
+const FONT_SERIF = 'Liberation Serif, serif';
 
 // Quote Database - must match client exactly
 const QUOTES = [

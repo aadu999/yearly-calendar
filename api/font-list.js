@@ -4,8 +4,16 @@
 
 const { execSync } = require('child_process');
 const fs = require('fs');
+const { initFonts } = require('../src/init-fonts');
 
 module.exports = async (req, res) => {
+    // Initialize fonts first so /tmp/fonts exists
+    try {
+        initFonts();
+    } catch (err) {
+        console.error('initFonts error:', err);
+    }
+
     const debug = {
         fcList: null,
         fcListError: null,
