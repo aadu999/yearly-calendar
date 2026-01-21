@@ -5,7 +5,9 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "build": "node scripts/verify-fonts.js",
+    "verify-fonts": "node scripts/verify-fonts.js"
   },
   "keywords": [
     "chronos",
@@ -21,6 +23,7 @@
   "license": "MIT",
   "dependencies": {
     "express": "^4.18.2",
+    "groq-sdk": "^0.7.0",
     "sharp": "^0.33.2"
   },
   "devDependencies": {

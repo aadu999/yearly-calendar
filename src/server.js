@@ -61,9 +61,9 @@ app.get('/api/generate', async (req, res) => {
             });
         }
 
-        if (!['cyber', 'space', 'swiss'].includes(theme)) {
+        if (!['cyber', 'swiss', 'deep', 'slate'].includes(theme)) {
             return res.status(400).json({
-                error: 'Invalid theme. Please use "cyber", "space", or "swiss".'
+                error: 'Invalid theme. Please use "cyber", "swiss", "deep", or "slate".'
             });
         }
 
@@ -101,6 +101,106 @@ app.get('/api/generate', async (req, res) => {
 });
 
 /**
+ * GET /today-laptop
+ * Quick endpoint to generate today's wallpaper in desktop format
+ * Optional query parameters: theme, shape
+ */
+app.get('/today-laptop', async (req, res) => {
+    try {
+        const theme = req.query.theme || 'cyber';
+        const shape = req.query.shape || 'rounded';
+
+        const generator = new ChronosGenerator({
+            date: new Date(),
+            device: 'desktop',
+            theme,
+            shape
+        });
+
+        const buffer = await generator.generate();
+
+        res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Content-Disposition', `attachment; filename="chronos-today-desktop-${theme}.png"`);
+        res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate');
+        res.send(buffer);
+
+    } catch (error) {
+        console.error('Error generating today laptop wallpaper:', error);
+        res.status(500).json({
+            error: 'Failed to generate wallpaper',
+            message: error.message
+        });
+    }
+});
+
+/**
+ * GET /today-mobile
+ * Quick endpoint to generate today's wallpaper in mobile format
+ * Optional query parameters: theme, shape
+ */
+app.get('/today-mobile', async (req, res) => {
+    try {
+        const theme = req.query.theme || 'cyber';
+        const shape = req.query.shape || 'rounded';
+
+        const generator = new ChronosGenerator({
+            date: new Date(),
+            device: 'mobile',
+            theme,
+            shape
+        });
+
+        const buffer = await generator.generate();
+
+        res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Content-Disposition', `attachment; filename="chronos-today-mobile-${theme}.png"`);
+        res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate');
+        res.send(buffer);
+
+    } catch (error) {
+        console.error('Error generating today mobile wallpaper:', error);
+        res.status(500).json({
+            error: 'Failed to generate wallpaper',
+            message: error.message
+        });
+    }
+});
+
+/**
+ * GET /iphone-lock
+ * Quick endpoint for iPhone 15/16 Pro lock screen wallpaper
+ * Minimalist grid-only layout designed for iOS lock screen
+ * Optional query parameters: theme, shape
+ */
+app.get('/iphone-lock', async (req, res) => {
+    try {
+        const theme = req.query.theme || 'cyber';
+        const shape = req.query.shape || 'circle';
+
+        const generator = new ChronosGenerator({
+            date: new Date(),
+            device: 'iphone-lock',
+            theme,
+            shape
+        });
+
+        const buffer = await generator.generate();
+
+        res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Content-Disposition', `attachment; filename="chronos-iphone-lock-${theme}.png"`);
+        res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate');
+        res.send(buffer);
+
+    } catch (error) {
+        console.error('Error generating iPhone lock screen wallpaper:', error);
+        res.status(500).json({
+            error: 'Failed to generate wallpaper',
+            message: error.message
+        });
+    }
+});
+
+/**
  * GET /api/info
  * API documentation endpoint
  */
@@ -113,6 +213,82 @@ app.get('/api/info', (req, res) => {
             '/': {
                 method: 'GET',
                 description: 'Interactive Chronos 4K dashboard'
+            },
+            '/today-laptop': {
+                method: 'GET',
+                description: 'Quick endpoint to generate today\'s wallpaper in desktop format (3840x2160)',
+                parameters: {
+                    theme: {
+                        type: 'string',
+                        required: false,
+                        default: 'cyber',
+                        options: ['cyber', 'swiss', 'deep', 'slate'],
+                        description: 'Color theme'
+                    },
+                    shape: {
+                        type: 'string',
+                        required: false,
+                        default: 'rounded',
+                        options: ['circle', 'square', 'rounded'],
+                        description: 'Grid cell shape'
+                    }
+                },
+                examples: [
+                    '/today-laptop',
+                    '/today-laptop?theme=swiss',
+                    '/today-laptop?theme=space&shape=circle'
+                ]
+            },
+            '/today-mobile': {
+                method: 'GET',
+                description: 'Quick endpoint to generate today\'s wallpaper in mobile format (2160x3840)',
+                parameters: {
+                    theme: {
+                        type: 'string',
+                        required: false,
+                        default: 'cyber',
+                        options: ['cyber', 'swiss', 'deep', 'slate'],
+                        description: 'Color theme'
+                    },
+                    shape: {
+                        type: 'string',
+                        required: false,
+                        default: 'rounded',
+                        options: ['circle', 'square', 'rounded'],
+                        description: 'Grid cell shape'
+                    }
+                },
+                examples: [
+                    '/today-mobile',
+                    '/today-mobile?theme=deep',
+                    '/today-mobile?theme=swiss&shape=square'
+                ]
+            },
+            '/iphone-lock': {
+                method: 'GET',
+                description: 'iPhone 15/16 Pro lock screen wallpaper (1290x2796) - Minimalist grid-only layout',
+                parameters: {
+                    theme: {
+                        type: 'string',
+                        required: false,
+                        default: 'cyber',
+                        options: ['cyber', 'swiss', 'deep', 'slate'],
+                        description: 'Color theme'
+                    },
+                    shape: {
+                        type: 'string',
+                        required: false,
+                        default: 'circle',
+                        options: ['circle', 'square', 'rounded'],
+                        description: 'Grid cell shape'
+                    }
+                },
+                examples: [
+                    '/iphone-lock',
+                    '/iphone-lock?theme=slate&shape=circle',
+                    '/iphone-lock?theme=swiss&shape=square'
+                ],
+                notes: 'Designed for iOS lock screen with top 30% reserved for system UI, grid in middle 55%, minimal info at bottom'
             },
             '/api/generate': {
                 method: 'GET',
@@ -135,7 +311,7 @@ app.get('/api/info', (req, res) => {
                         type: 'string',
                         required: false,
                         default: 'cyber',
-                        options: ['cyber', 'space', 'swiss'],
+                        options: ['cyber', 'swiss', 'deep', 'slate'],
                         description: 'Color theme'
                     },
                     shape: {
@@ -165,9 +341,10 @@ app.get('/api/info', (req, res) => {
             }
         },
         themes: {
-            cyber: 'Neon Lime on Void Black',
-            space: 'Sky Blue on Navy',
-            swiss: 'International Red on White'
+            cyber: 'Cyber - Neon Lime on Void Black',
+            swiss: 'Swiss - International Red on Light Gray',
+            deep: 'Deep Space - Sky Blue on Navy',
+            slate: 'Monolith - Orange on Dark Brown'
         },
         shapes: {
             circle: 'Round cells',

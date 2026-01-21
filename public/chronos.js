@@ -56,7 +56,7 @@ class ChronosApp {
     this.config = {
       themeKey: 'cyber',
       shape: 'rounded',
-      layout: 'mobile'
+      layout: 'desktop'
     };
 
     this.today = new Date();
@@ -97,7 +97,6 @@ class ChronosApp {
   }
 
   getLayoutZones(isMobile) {
-    const p = 0.05;
     if (isMobile) {
       return {
         date: { left: 0.05, top: 0.05, width: 0.90, height: 0.22 },
@@ -115,91 +114,95 @@ class ChronosApp {
     const theme = THEMES[this.config.themeKey];
     document.body.style.backgroundColor = theme.bg;
     document.body.style.color = theme.text;
+    document.documentElement.style.setProperty('--bg', theme.bg);
+    document.documentElement.style.setProperty('--text', theme.text);
+    document.documentElement.style.setProperty('--accent', theme.accent);
+
+    const themeButtons = Object.entries(THEMES).map(([key, t]) => `
+      <button
+        data-theme="${key}"
+        class="theme-btn ${this.config.themeKey === key ? 'active' : ''}"
+        style="background-color: ${t.bg}; border-color: ${t.secondary}; ${this.config.themeKey === key ? `outline-color: ${t.accent}` : ''}"
+      >
+        <div class="theme-dot" style="background: ${t.accent}"></div>
+      </button>
+    `).join('');
+
+    const shapeButtons = ['square', 'rounded', 'circle'].map(s => `
+      <button
+        data-shape="${s}"
+        class="shape-btn ${this.config.shape === s ? 'active' : ''}"
+      >
+        ${s === 'square' ? '■' : s === 'rounded' ? '▢' : '●'}
+      </button>
+    `).join('');
+
+    const layoutButtons = ['desktop', 'mobile'].map(l => `
+      <button
+        data-layout="${l}"
+        class="layout-btn ${this.config.layout === l ? 'active' : ''}"
+      >
+        <span class="layout-icon">${l === 'desktop' ? '🖥️' : '📱'}</span>
+        <span>${l}</span>
+      </button>
+    `).join('');
 
     const html = `
-      <div class="h-screen w-screen flex flex-col lg:flex-row overflow-hidden" style="background-color: ${theme.bg}; color: ${theme.text}">
-
+      <div class="container">
         <!-- Sidebar -->
-        <div class="w-full lg:w-80 border-r border-white/10 flex flex-col z-20 bg-black/20 backdrop-blur-md shadow-2xl lg:h-full order-2 lg:order-1 max-h-[40vh] lg:max-h-full overflow-y-auto">
-          <div class="p-5 border-b border-white/5 bg-white/5">
-            <h1 class="text-xl font-bold tracking-tight flex items-center gap-2">
+        <div class="sidebar">
+          <div class="sidebar-header">
+            <div class="sidebar-title">
               <span style="color: ${theme.accent}">⚡</span>
               <span>CHRONOS 4K</span>
-            </h1>
+            </div>
           </div>
 
-          <div class="p-5 space-y-6 flex-1">
+          <div class="sidebar-content">
             <!-- Theme -->
-            <div class="space-y-2">
-              <label class="text-[10px] uppercase tracking-widest opacity-50 font-bold">🎨 Aesthetics</label>
-              <div class="grid grid-cols-4 gap-2" id="themeGrid">
-                ${Object.entries(THEMES).map(([key, t]) => `
-                  <button
-                    data-theme="${key}"
-                    class="aspect-square rounded-lg border flex items-center justify-center transition-transform hover:scale-105 ${this.config.themeKey === key ? 'ring-2 ring-offset-1' : 'opacity-60'}"
-                    style="background-color: ${t.bg}; border-color: ${t.secondary}; ${this.config.themeKey === key ? `outline: 2px solid ${t.accent}` : ''}"
-                  >
-                    <div class="w-2 h-2 rounded-full shadow-lg" style="background: ${t.accent}"></div>
-                  </button>
-                `).join('')}
+            <div class="control-group">
+              <label class="control-label">🎨 Aesthetics</label>
+              <div class="theme-grid" id="themeGrid">
+                ${themeButtons}
               </div>
             </div>
 
             <!-- Shape -->
-            <div class="space-y-2">
-              <label class="text-[10px] uppercase tracking-widest opacity-50 font-bold">⚙️ Geometry</label>
-              <div class="flex bg-white/5 p-1 rounded-lg">
-                ${['square', 'rounded', 'circle'].map(s => `
-                  <button
-                    data-shape="${s}"
-                    class="flex-1 py-2 flex justify-center rounded transition-colors ${this.config.shape === s ? 'bg-white/10 text-white' : 'text-white/30'}"
-                  >
-                    ${s === 'square' ? '▪' : s === 'rounded' ? '▫' : '●'}
-                  </button>
-                `).join('')}
+            <div class="control-group">
+              <label class="control-label">⚙️ Geometry</label>
+              <div class="shape-buttons">
+                ${shapeButtons}
               </div>
             </div>
 
             <!-- Layout -->
-            <div class="space-y-2">
-              <label class="text-[10px] uppercase tracking-widest opacity-50 font-bold">💻 Device Target</label>
-              <div class="grid grid-cols-2 gap-3">
-                ${['desktop', 'mobile'].map(l => `
-                  <button
-                    data-layout="${l}"
-                    class="p-3 border rounded-xl flex flex-col items-center gap-1 transition-all ${this.config.layout === l ? 'bg-white/10 border-white/30 text-white' : 'border-transparent bg-white/5 text-white/40'}"
-                  >
-                    <span>${l === 'desktop' ? '🖥️' : '📱'}</span>
-                    <span class="text-[10px] font-medium uppercase">${l}</span>
-                  </button>
-                `).join('')}
+            <div class="control-group">
+              <label class="control-label">💻 Device Target</label>
+              <div class="layout-grid">
+                ${layoutButtons}
               </div>
             </div>
           </div>
 
-          <div class="p-5 border-t border-white/5 bg-white/5">
+          <div class="sidebar-footer">
             <button
               id="downloadBtn"
-              class="w-full h-12 font-bold text-sm rounded-lg flex items-center justify-center gap-2 hover:brightness-110 active:scale-[0.98] transition-all shadow-lg"
+              class="download-btn"
               style="background-color: ${theme.accent}; color: ${this.config.themeKey === 'swiss' ? 'white' : 'black'}"
+              ${this.isGenerating ? 'disabled' : ''}
             >
-              <span>${this.isGenerating ? '↻' : '⬇'}</span>
+              <span class="${this.isGenerating ? 'spin' : ''}">${this.isGenerating ? '↻' : '⬇'}</span>
               <span>DOWNLOAD 4K PNG</span>
             </button>
           </div>
         </div>
 
         <!-- Preview -->
-        <div class="flex-1 order-1 lg:order-2 flex items-center justify-center p-4 relative overflow-hidden" style="background-image: url('data:image/svg+xml;utf8,<svg width=\\"20\\" height=\\"20\\" xmlns=\\"http://www.w3.org/2000/svg\\"><rect width=\\"10\\" height=\\"10\\" fill=\\"rgba(255,255,255,0.02)\\"/><rect x=\\"10\\" y=\\"10\\" width=\\"10\\" height=\\"10\\" fill=\\"rgba(255,255,255,0.02)\\"/></svg>')">
+        <div class="preview-area">
           <div
             id="previewCard"
-            class="relative shadow-2xl transition-all duration-500 ease-out ring-1 ring-white/10"
-            style="
-              background-color: ${theme.bg};
-              aspect-ratio: ${this.config.layout === 'mobile' ? '9/16' : '16/9'};
-              ${this.config.layout === 'mobile' ? 'height: 95%; width: auto;' : 'width: 90%; height: auto;'}
-              border-radius: 20px;
-            "
+            class="preview-card ${this.config.layout}"
+            style="background-color: ${theme.bg}"
           >
             ${this.renderPreview()}
           </div>
@@ -224,11 +227,11 @@ class ChronosApp {
         width: ${zones.date.width * 100}%;
         height: ${zones.date.height * 100}%;
       ">
-        <div class="flex flex-row items-baseline gap-2">
-          <span class="font-bold leading-none" style="font-size: ${isMobile ? '5vh' : '6vw'};">
+        <div style="display: flex; align-items: baseline; gap: 0.5rem;">
+          <span style="font-weight: 700; line-height: 1; font-size: ${isMobile ? '5vh' : '6vw'};">
             ${this.today.getDate().toString().padStart(2, '0')}
           </span>
-          <div class="flex flex-col leading-tight" style="font-size: ${isMobile ? '1.2vh' : '1.5vw'};">
+          <div style="display: flex; flex-direction: column; line-height: 1.2; font-size: ${isMobile ? '1.2vh' : '1.5vw'};">
             <span style="color: ${theme.accent}; font-weight: 600;">
               ${this.today.toLocaleDateString('en-US', { month: 'long' }).toUpperCase()}
             </span>
@@ -256,15 +259,15 @@ class ChronosApp {
 
   renderMobileProgress(theme) {
     return `
-      <div class="flex flex-col gap-2 mt-4 w-full">
-        <div class="w-full h-1.5 rounded-full overflow-hidden" style="background-color: ${theme.muted}">
-          <div class="h-full transition-all" style="width: ${this.progressPercent * 100}%; background-color: ${theme.accent}"></div>
+      <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; width: 100%;">
+        <div style="width: 100%; height: 6px; border-radius: 999px; overflow: hidden; background-color: ${theme.muted}">
+          <div style="height: 100%; width: ${this.progressPercent * 100}%; background-color: ${theme.accent}; transition: width 0.5s;"></div>
         </div>
-        <div class="flex justify-between text-[1.2vh] font-bold" style="color: ${theme.secondary}">
+        <div style="display: flex; justify-content: space-between; font-size: 1.2vh; font-weight: 700; color: ${theme.secondary}">
           <span>${this.dayOfYear} FINISHED</span>
           <span>${this.remainingDays} REMAINING</span>
         </div>
-        <div class="mt-2 italic font-light opacity-60 text-[1.4vh]" style="color: ${theme.text}">
+        <div style="margin-top: 0.5rem; font-style: italic; font-weight: 300; opacity: 0.6; font-size: 1.4vh; color: ${theme.text}">
           "${this.quote}"
         </div>
       </div>
@@ -273,23 +276,23 @@ class ChronosApp {
 
   renderDesktopProgress(theme) {
     return `
-      <div class="mt-8 flex flex-col gap-4 w-full">
-        <div class="w-full h-4 rounded-full overflow-hidden" style="background-color: ${theme.muted}">
-          <div class="h-full transition-all" style="width: ${this.progressPercent * 100}%; background-color: ${theme.accent}"></div>
+      <div style="margin-top: 2rem; display: flex; flex-direction: column; gap: 1rem; width: 100%;">
+        <div style="width: 100%; height: 16px; border-radius: 999px; overflow: hidden; background-color: ${theme.muted}">
+          <div style="height: 100%; width: ${this.progressPercent * 100}%; background-color: ${theme.accent}; transition: width 0.5s;"></div>
         </div>
-        <div class="flex justify-between items-start">
-          <div class="flex flex-col items-start">
-            <span class="text-5xl font-bold" style="color: ${theme.text}">${this.dayOfYear}</span>
-            <span class="text-sm font-medium tracking-wide" style="color: ${theme.secondary}">FINISHED</span>
+        <div style="display: flex; justify-content: space-between; align-items: start;">
+          <div style="display: flex; flex-direction: column; align-items: start;">
+            <span style="font-size: 3rem; font-weight: 700; color: ${theme.text}">${this.dayOfYear}</span>
+            <span style="font-size: 0.875rem; font-weight: 500; letter-spacing: 0.05em; color: ${theme.secondary}">FINISHED</span>
           </div>
-          <div class="flex flex-col items-end">
-            <span class="text-5xl font-bold" style="color: ${theme.text}">${this.remainingDays}</span>
-            <span class="text-sm font-medium tracking-wide" style="color: ${theme.secondary}">REMAINING</span>
+          <div style="display: flex; flex-direction: column; align-items: end;">
+            <span style="font-size: 3rem; font-weight: 700; color: ${theme.text}">${this.remainingDays}</span>
+            <span style="font-size: 0.875rem; font-weight: 500; letter-spacing: 0.05em; color: ${theme.secondary}">REMAINING</span>
           </div>
         </div>
-        <div class="relative mt-8">
-          <span class="text-6xl font-serif opacity-30 absolute -top-4 -left-2" style="color: ${theme.muted}">"</span>
-          <p class="pl-6 italic font-light opacity-70 text-lg leading-relaxed" style="color: ${theme.text}">
+        <div style="position: relative; margin-top: 2rem;">
+          <span style="font-size: 4rem; font-family: serif; opacity: 0.3; position: absolute; top: -1rem; left: -0.5rem; color: ${theme.muted}">"</span>
+          <p style="padding-left: 1.5rem; font-style: italic; font-weight: 300; opacity: 0.7; font-size: 1.125rem; line-height: 1.75rem; color: ${theme.text}">
             ${this.quote}
           </p>
         </div>
@@ -404,7 +407,9 @@ class ChronosApp {
 
     // Download button
     document.getElementById('downloadBtn').addEventListener('click', () => {
-      this.downloadWallpaper();
+      if (!this.isGenerating) {
+        this.downloadWallpaper();
+      }
     });
   }
 
