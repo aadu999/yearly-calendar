@@ -389,9 +389,8 @@ class ChronosGenerator {
 
         let svg = `<svg width="${this.width}" height="${this.height}" xmlns="http://www.w3.org/2000/svg">`;
 
-        // Add embedded fonts and filters
-        svg += generateFontFaceSVG();
-        svg += `
+        // Add filters
+        svg += `<defs>
             <filter id="glow">
                 <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
                 <feMerge>
