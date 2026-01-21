@@ -11,23 +11,39 @@ const fontCache = {};
 
 function getFontBase64(fontFileName) {
     if (fontCache[fontFileName]) {
+        console.log(`[Font Embedder] Using cached ${fontFileName}`);
         return fontCache[fontFileName];
     }
 
-    const fontPath = path.join(__dirname, '../fonts', fontFileName);
+    try {
+        const fontPath = path.join(__dirname, '../fonts', fontFileName);
+        console.log(`[Font Embedder] Looking for font at: ${fontPath}`);
 
-    if (!fs.existsSync(fontPath)) {
-        console.error(`[Font Embedder] Font file not found: ${fontPath}`);
+        if (!fs.existsSync(fontPath)) {
+            console.error(`[Font Embedder] Font file not found: ${fontPath}`);
+            // List what files are actually in the fonts directory
+            const fontsDir = path.join(__dirname, '../fonts');
+            if (fs.existsSync(fontsDir)) {
+                const files = fs.readdirSync(fontsDir);
+                console.error(`[Font Embedder] Files in fonts directory:`, files);
+            } else {
+                console.error(`[Font Embedder] Fonts directory does not exist: ${fontsDir}`);
+            }
+            return null;
+        }
+
+        const fontBuffer = fs.readFileSync(fontPath);
+        const base64Font = fontBuffer.toString('base64');
+
+        fontCache[fontFileName] = base64Font;
+        console.log(`[Font Embedder] ✓ Encoded ${fontFileName} (${(base64Font.length / 1024).toFixed(2)} KB base64)`);
+
+        return base64Font;
+    } catch (error) {
+        console.error(`[Font Embedder] Error encoding ${fontFileName}:`, error.message);
+        console.error(`[Font Embedder] Stack:`, error.stack);
         return null;
     }
-
-    const fontBuffer = fs.readFileSync(fontPath);
-    const base64Font = fontBuffer.toString('base64');
-
-    fontCache[fontFileName] = base64Font;
-    console.log(`[Font Embedder] Encoded ${fontFileName} (${(base64Font.length / 1024).toFixed(2)} KB base64)`);
-
-    return base64Font;
 }
 
 function generateFontFaceSVG() {
@@ -59,6 +75,9 @@ function generateFontFaceSVG() {
     ];
 
     let fontFaces = '<defs><style type="text/css"><![CDATA[\n';
+    let successCount = 0;
+
+    console.log('[Font Embedder] Starting font embedding...');
 
     for (const font of fonts) {
         const base64 = getFontBase64(font.file);
@@ -76,9 +95,16 @@ function generateFontFaceSVG() {
     font-style: ${font.style};
 }
 `;
+        successCount++;
     }
 
     fontFaces += ']]></style>';
+
+    console.log(`[Font Embedder] ✓ Successfully embedded ${successCount}/${fonts.length} fonts`);
+
+    if (successCount === 0) {
+        console.error('[Font Embedder] WARNING: No fonts were embedded! Text may not render correctly.');
+    }
 
     return fontFaces;
 }
