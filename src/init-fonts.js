@@ -9,8 +9,14 @@ const path = require('path');
 let fontsInitialized = false;
 
 function initFonts() {
-    if (fontsInitialized) {
-        return;
+    // Check if fonts actually exist in /tmp, not just if we think we initialized them
+    const tmpFontsDir = '/tmp/fonts';
+    if (fontsInitialized && fs.existsSync(tmpFontsDir)) {
+        const tmpFiles = fs.readdirSync(tmpFontsDir);
+        if (tmpFiles.length > 0) {
+            console.log('[Font Init] Already initialized, skipping');
+            return;
+        }
     }
 
     try {
@@ -39,30 +45,50 @@ function initFonts() {
         }
 
         // Create /tmp/fonts directory
-        const tmpFontsDir = '/tmp/fonts';
+        console.log('[Font Init] Creating /tmp/fonts directory...');
         if (!fs.existsSync(tmpFontsDir)) {
             fs.mkdirSync(tmpFontsDir, { recursive: true });
-            console.log('[Font Init] Created /tmp/fonts directory');
+            console.log('[Font Init] ✓ Created /tmp/fonts directory');
+        } else {
+            console.log('[Font Init] /tmp/fonts already exists');
         }
 
         // Copy fonts to /tmp
         let copiedCount = 0;
+        console.log('[Font Init] Starting font copy...');
         for (const fontFile of fontFiles) {
-            if (!fontFile.endsWith('.ttf')) continue;
+            if (!fontFile.endsWith('.ttf')) {
+                console.log('[Font Init] Skipping non-TTF file:', fontFile);
+                continue;
+            }
 
             const src = path.join(fontsDir, fontFile);
             const dest = path.join(tmpFontsDir, fontFile);
 
             try {
+                // Check source exists
+                if (!fs.existsSync(src)) {
+                    console.error('[Font Init] Source file does not exist:', src);
+                    continue;
+                }
+
                 fs.copyFileSync(src, dest);
                 copiedCount++;
-                console.log('[Font Init] Copied:', fontFile);
+
+                // Verify the copy
+                if (fs.existsSync(dest)) {
+                    const stats = fs.statSync(dest);
+                    console.log(`[Font Init] ✓ Copied ${fontFile} (${stats.size} bytes)`);
+                } else {
+                    console.error('[Font Init] Copy failed - destination does not exist:', dest);
+                }
             } catch (err) {
                 console.error('[Font Init] Failed to copy', fontFile, ':', err.message);
+                console.error('[Font Init] Error stack:', err.stack);
             }
         }
 
-        console.log('[Font Init] Copied', copiedCount, 'font files to /tmp/fonts');
+        console.log(`[Font Init] ✓ Copied ${copiedCount} font files to /tmp/fonts`);
 
         // Create fontconfig directory
         const fontconfigDir = '/tmp/fontconfig';
@@ -94,6 +120,18 @@ function initFonts() {
 
         console.log('[Font Init] Set FONTCONFIG_FILE to:', process.env.FONTCONFIG_FILE);
         console.log('[Font Init] Set FONTCONFIG_PATH to:', process.env.FONTCONFIG_PATH);
+
+        // Verify fonts were copied
+        console.log('[Font Init] Verifying fonts in /tmp/fonts...');
+        if (fs.existsSync(tmpFontsDir)) {
+            const tmpFontFiles = fs.readdirSync(tmpFontsDir);
+            console.log('[Font Init] Fonts in /tmp/fonts:', tmpFontFiles);
+            if (tmpFontFiles.length === 0) {
+                console.error('[Font Init] WARNING: /tmp/fonts is empty!');
+            }
+        } else {
+            console.error('[Font Init] ERROR: /tmp/fonts does not exist after initialization!');
+        }
 
         // Try to list fonts to verify
         try {
