@@ -49,19 +49,19 @@ function getFontBase64(fontFileName) {
 function generateFontFaceSVG() {
     const fonts = [
         {
-            family: 'Liberation Sans',
+            family: 'DejaVu Sans',
             file: 'LiberationSans-Regular.ttf',
             weight: '400',
             style: 'normal'
         },
         {
-            family: 'Liberation Sans',
+            family: 'DejaVu Sans',
             file: 'LiberationSans-Bold.ttf',
             weight: '700',
             style: 'normal'
         },
         {
-            family: 'Liberation Sans',
+            family: 'DejaVu Sans',
             file: 'LiberationSans-Bold.ttf',
             weight: '900',
             style: 'normal'
