@@ -1,4 +1,5 @@
 const ChronosGenerator = require('../src/chronosGenerator');
+const { getNowInTimezone } = require('../src/date-helper');
 
 /**
  * Vercel Serverless Function for Chronos 4K Generation
@@ -25,14 +26,18 @@ module.exports = async (req, res) => {
         const shape = req.query.shape || 'rounded';
 
         // Parse date if provided
-        let date = new Date();
+        let date;
         if (req.query.date) {
             const parsedDate = new Date(req.query.date);
             if (!isNaN(parsedDate.getTime())) {
                 date = parsedDate;
+            } else {
+                date = getNowInTimezone(req);
             }
         } else {
-            date = new Date(year, date.getMonth(), date.getDate());
+            // Use timezone-aware "now"
+            const now = getNowInTimezone(req);
+            date = new Date(year, now.getMonth(), now.getDate());
         }
 
         // Validate parameters
@@ -73,7 +78,8 @@ module.exports = async (req, res) => {
         // Set response headers
         res.setHeader('Content-Type', 'image/png');
         res.setHeader('Content-Disposition', `attachment; filename="chronos-${year}-${device}-${theme}.png"`);
-        res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate');
+        // Reduced cache to 10 minutes to handle timezone transitions better
+        res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate');
 
         // Send the image
         res.send(buffer);

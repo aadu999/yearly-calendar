@@ -4,14 +4,18 @@
  */
 
 const ChronosGenerator = require('../src/chronosGenerator');
+const { getNowInTimezone } = require('../src/date-helper');
 
 module.exports = async (req, res) => {
     try {
         const theme = req.query.theme || 'cyber';
         const shape = req.query.shape || 'circle';
 
+        // Use timezone-aware date
+        const now = getNowInTimezone(req);
+
         const generator = new ChronosGenerator({
-            date: new Date(),
+            date: now,
             device: 'iphone-lock',
             theme,
             shape
@@ -21,7 +25,8 @@ module.exports = async (req, res) => {
 
         res.setHeader('Content-Type', 'image/png');
         res.setHeader('Content-Disposition', 'inline');
-        res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate');
+        // Reduced cache to 10 minutes
+        res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate');
         res.send(buffer);
 
     } catch (error) {
