@@ -5,7 +5,8 @@
     { "source": "/api", "destination": "/api/index" },
     { "source": "/health", "destination": "/api/health" },
     { "source": "/today-laptop", "destination": "/api/today-laptop" },
-    { "source": "/today-mobile", "destination": "/api/today-mobile" }
+    { "source": "/today-mobile", "destination": "/api/today-mobile" },
+    { "source": "/iphone-lock", "destination": "/api/iphone-lock" }
   ],
   "headers": [
     {

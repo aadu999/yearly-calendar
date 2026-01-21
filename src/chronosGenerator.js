@@ -78,6 +78,10 @@ class ChronosGenerator {
         if (this.layout === 'mobile') {
             this.width = 2160;
             this.height = 3840;
+        } else if (this.layout === 'iphone-lock') {
+            // iPhone 15/16 Pro Max resolution
+            this.width = 1290;
+            this.height = 2796;
         } else {
             this.width = 3840;
             this.height = 2160;
@@ -118,9 +122,14 @@ class ChronosGenerator {
     }
 
     async generate() {
-        const svg = this.layout === 'mobile'
-            ? this.generateMobileSVG()
-            : this.generateDesktopSVG();
+        let svg;
+        if (this.layout === 'mobile') {
+            svg = this.generateMobileSVG();
+        } else if (this.layout === 'iphone-lock') {
+            svg = this.generateiPhoneLockSVG();
+        } else {
+            svg = this.generateDesktopSVG();
+        }
 
         const buffer = await sharp(Buffer.from(svg))
             .png()
@@ -357,6 +366,126 @@ class ChronosGenerator {
 
         // Matrix Grid
         svg += this.generateMatrixSVG(gridZone.x, gridZone.y, gridZone.width, gridZone.height, false);
+
+        svg += '</svg>';
+        return svg;
+    }
+
+    generateiPhoneLockSVG() {
+        // iPhone lock screen layout with grid-only design
+        // Top 30% reserved for iOS lock screen (time, date, widgets)
+        // Content in middle 55%
+        // Bottom 15% for minimal info
+
+        const topReserved = this.height * 0.30;
+        const contentHeight = this.height * 0.55;
+        const bottomReserved = this.height * 0.15;
+
+        const contentY = topReserved;
+        const padding = this.width * 0.05;
+        const contentWidth = this.width - (padding * 2);
+
+        let svg = `<svg width="${this.width}" height="${this.height}" xmlns="http://www.w3.org/2000/svg">`;
+
+        // Add glow filter
+        svg += `<defs>
+            <filter id="glow">
+                <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+                <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+            </filter>
+        </defs>`;
+
+        // Background
+        svg += `<rect width="${this.width}" height="${this.height}" fill="${this.colors.bg}"/>`;
+
+        // Week day labels at top of content area
+        const DAYS_HEADER = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+        const currentDayOfWeek = this.currentDate.getDay();
+        const labelSize = this.width * 0.04;
+        const labelY = contentY + padding;
+        const colWidth = contentWidth / 7;
+
+        DAYS_HEADER.forEach((day, i) => {
+            const color = (i === currentDayOfWeek) ? this.colors.accent : this.colors.secondary;
+            const labelX = padding + (i * colWidth) + (colWidth / 2);
+            svg += `<text x="${labelX}" y="${labelY + labelSize * 0.6}"
+                    text-anchor="middle"
+                    font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                    font-size="${labelSize}" font-weight="bold"
+                    fill="${color}">${day}</text>`;
+        });
+
+        // Grid area
+        const gridY = labelY + labelSize + (padding * 0.5);
+        const gridHeight = contentHeight - labelSize - (padding * 1.5);
+
+        // Draw grid
+        const firstDayOfYear = new Date(this.currentYear, 0, 1);
+        const firstDayIndex = firstDayOfYear.getDay();
+
+        const cols = 7;
+        const rows = 53;
+        const gap = this.width * 0.005;
+
+        const cellWidth = (contentWidth - (gap * (cols - 1))) / cols;
+        const cellHeight = (gridHeight - (gap * (rows - 1))) / rows;
+
+        // Draw all cells
+        for (let i = 0; i < 371; i++) {
+            const col = i % 7;
+            const row = Math.floor(i / 7);
+
+            const dIndex = (row * 7) + col - firstDayIndex;
+
+            if (dIndex < 0 || dIndex >= this.totalDays) {
+                continue;
+            }
+
+            const dayNumber = dIndex + 1;
+            const cellX = padding + col * (cellWidth + gap);
+            const cellY = gridY + row * (cellHeight + gap);
+
+            // Determine color
+            let fill;
+            const isPast = dayNumber < this.dayOfYear;
+            const isToday = dayNumber === this.dayOfYear;
+
+            if (isToday) {
+                fill = this.colors.accent;
+            } else if (isPast) {
+                fill = this.colors.text;
+            } else {
+                fill = this.colors.secondary;
+            }
+
+            // Generate shape
+            if (this.shape === 'circle') {
+                const radius = Math.min(cellWidth, cellHeight) / 2;
+                svg += `<circle cx="${cellX + cellWidth / 2}" cy="${cellY + cellHeight / 2}" r="${radius}"
+                        fill="${fill}"${isToday ? ' filter="url(#glow)"' : ''}/>`;
+            } else if (this.shape === 'square') {
+                svg += `<rect x="${cellX}" y="${cellY}" width="${cellWidth}" height="${cellHeight}"
+                        fill="${fill}"${isToday ? ' filter="url(#glow)"' : ''}/>`;
+            } else {
+                const radius = Math.min(cellWidth, cellHeight) * 0.3;
+                svg += `<rect x="${cellX}" y="${cellY}" width="${cellWidth}" height="${cellHeight}"
+                        rx="${radius}" fill="${fill}"${isToday ? ' filter="url(#glow)"' : ''}/>`;
+            }
+        }
+
+        // Bottom info: "Xd left · Y%"
+        const bottomY = this.height - (bottomReserved / 2);
+        const infoSize = this.width * 0.035;
+        const percentComplete = Math.round(this.progressPercent * 100);
+
+        svg += `<text x="${this.width / 2}" y="${bottomY}"
+                text-anchor="middle"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-size="${infoSize}" font-weight="500"
+                fill="${this.colors.accent}">${this.remainingDays}d left · ${percentComplete}%</text>`;
 
         svg += '</svg>';
         return svg;
