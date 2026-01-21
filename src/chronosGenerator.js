@@ -134,15 +134,15 @@ class ChronosGenerator {
 
         // Date Display
         svg += `<text x="${padding}" y="${padding + this.width * 0.11}"
-                font-family="Arial, sans-serif" font-size="${this.width * 0.12}" font-weight="900"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.12}" font-weight="900"
                 fill="${this.colors.text}">${this.currentDate.getDate()}</text>`;
 
         svg += `<text x="${padding}" y="${padding + this.width * 0.14}"
-                font-family="Arial, sans-serif" font-size="${this.width * 0.025}" font-weight="700"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.025}" font-weight="700"
                 fill="${this.colors.accent}">${this.monthNames[this.currentDate.getMonth()]}</text>`;
 
         svg += `<text x="${padding}" y="${padding + this.width * 0.165}"
-                font-family="Arial, sans-serif" font-size="${this.width * 0.018}" font-weight="300"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.018}" font-weight="300"
                 fill="${this.colors.muted}">${this.currentYear}</text>`;
 
         // Progress Bar
@@ -172,19 +172,19 @@ class ChronosGenerator {
         // Stats
         const statsY = progressY + barHeight + this.height * 0.04;
         svg += `<text x="${padding}" y="${statsY}"
-                font-family="Arial, sans-serif" font-size="${this.width * 0.05}" font-weight="900"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.05}" font-weight="900"
                 fill="${this.colors.text}">${this.dayOfYear}</text>`;
 
         svg += `<text x="${padding}" y="${statsY + this.height * 0.03}"
-                font-family="Arial, sans-serif" font-size="${this.width * 0.01}" font-weight="600"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.01}" font-weight="600"
                 fill="${this.colors.muted}">FINISHED</text>`;
 
         svg += `<text x="${padding + sidebarWidth * 0.55}" y="${statsY}"
-                font-family="Arial, sans-serif" font-size="${this.width * 0.05}" font-weight="900"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.05}" font-weight="900"
                 fill="${this.colors.text}">${this.totalDays - this.dayOfYear}</text>`;
 
         svg += `<text x="${padding + sidebarWidth * 0.55}" y="${statsY + this.height * 0.03}"
-                font-family="Arial, sans-serif" font-size="${this.width * 0.01}" font-weight="600"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.01}" font-weight="600"
                 fill="${this.colors.muted}">REMAINING</text>`;
 
         // Quote Card
@@ -199,7 +199,7 @@ class ChronosGenerator {
 
         // Quote mark
         svg += `<text x="${padding + this.width * 0.015}" y="${quoteY + this.height * 0.1}"
-                font-family="Georgia, serif" font-size="${this.width * 0.12}" font-style="italic" font-weight="900"
+                font-family="Liberation Serif, DejaVu Serif, Georgia, serif" font-size="${this.width * 0.12}" font-style="italic" font-weight="900"
                 fill="${this.colors.muted}" opacity="0.15">"</text>`;
 
         // Quote text (wrapped)
@@ -224,7 +224,7 @@ class ChronosGenerator {
 
         lines.forEach((l, i) => {
             svg += `<text x="${padding + this.width * 0.02}" y="${quoteY + this.height * 0.08 + i * this.width * 0.02}"
-                    font-family="Arial, sans-serif" font-size="${this.width * 0.013}" font-weight="300" font-style="italic"
+                    font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.013}" font-weight="300" font-style="italic"
                     fill="${this.colors.text}">${l}</text>`;
         });
 
@@ -251,15 +251,15 @@ class ChronosGenerator {
 
         // Date Display
         svg += `<text x="${padding}" y="${padding + this.width * 0.16}"
-                font-family="Arial, sans-serif" font-size="${this.width * 0.18}" font-weight="900"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.18}" font-weight="900"
                 fill="${this.colors.text}">${this.currentDate.getDate()}</text>`;
 
         svg += `<text x="${padding}" y="${padding + this.width * 0.22}"
-                font-family="Arial, sans-serif" font-size="${this.width * 0.05}" font-weight="700"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.05}" font-weight="700"
                 fill="${this.colors.accent}">${this.monthNames[this.currentDate.getMonth()]}</text>`;
 
         svg += `<text x="${padding}" y="${padding + this.width * 0.26}"
-                font-family="Arial, sans-serif" font-size="${this.width * 0.035}" font-weight="300"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.035}" font-weight="300"
                 fill="${this.colors.muted}">${this.currentYear}</text>`;
 
         // Progress Bar
@@ -287,11 +287,11 @@ class ChronosGenerator {
         // Stats
         const statsY = progressY + barHeight + this.height * 0.025;
         svg += `<text x="${padding}" y="${statsY}"
-                font-family="Arial, sans-serif" font-size="${this.width * 0.11}" font-weight="900"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.11}" font-weight="900"
                 fill="${this.colors.text}">${this.dayOfYear}</text>`;
 
         svg += `<text x="${padding}" y="${statsY + this.height * 0.02}"
-                font-family="Arial, sans-serif" font-size="${this.width * 0.028}" font-weight="600"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.028}" font-weight="600"
                 fill="${this.colors.muted}">FINISHED</text>`;
 
         // Right-aligned remaining
@@ -299,11 +299,11 @@ class ChronosGenerator {
         const remainingWidth = remainingText.length * this.width * 0.11 * 0.6;
 
         svg += `<text x="${this.width - padding - remainingWidth}" y="${statsY}"
-                font-family="Arial, sans-serif" font-size="${this.width * 0.11}" font-weight="900"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.11}" font-weight="900"
                 fill="${this.colors.text}">${remainingText}</text>`;
 
         svg += `<text x="${this.width - padding - this.width * 0.28}" y="${statsY + this.height * 0.02}"
-                font-family="Arial, sans-serif" font-size="${this.width * 0.028}" font-weight="600"
+                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${this.width * 0.028}" font-weight="600"
                 fill="${this.colors.muted}">REMAINING</text>`;
 
         // Matrix Grid
@@ -342,7 +342,7 @@ class ChronosGenerator {
                 const labelY = y + (i * rowHeight) + (rowHeight / 2);
                 svg += `<text x="${x + labelSize / 2}" y="${labelY}"
                         text-anchor="middle" dominant-baseline="middle"
-                        font-family="Arial, sans-serif" font-size="${labelSize * 0.5}" font-weight="bold"
+                        font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${labelSize * 0.5}" font-weight="bold"
                         fill="${color}">${day}</text>`;
             });
         } else {
@@ -356,7 +356,7 @@ class ChronosGenerator {
                 const labelX = x + (i * colWidth) + (colWidth / 2);
                 svg += `<text x="${labelX}" y="${y + labelSize / 2}"
                         text-anchor="middle" dominant-baseline="middle"
-                        font-family="Arial, sans-serif" font-size="${labelSize * 0.5}" font-weight="bold"
+                        font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif" font-size="${labelSize * 0.5}" font-weight="bold"
                         fill="${color}">${day}</text>`;
             });
         }
