@@ -1,9 +1,10 @@
 const sharp = require('sharp');
 const { initFonts } = require('./init-fonts');
-const { generateFontFaceSVG } = require('./font-embedder');
 
-// NOTE: Fonts are now embedded directly in SVG as base64 data URIs
-// This bypasses fontconfig completely and ensures fonts work in serverless environments
+// NOTE: librsvg in Vercel doesn't support @font-face with data URIs
+// Using DejaVu fonts which are pre-installed in Vercel's environment
+const FONT_SANS = 'DejaVu Sans, sans-serif';
+const FONT_SERIF = 'DejaVu Serif, serif';
 
 // Quote Database - must match client exactly
 const QUOTES = [
@@ -159,9 +160,8 @@ class ChronosGenerator {
 
         let svg = `<svg width="${this.width}" height="${this.height}" xmlns="http://www.w3.org/2000/svg">`;
 
-        // Add embedded fonts and filters
-        svg += generateFontFaceSVG();
-        svg += `
+        // Add filters
+        svg += `<defs>
             <filter id="glow">
                 <feGaussianBlur stdDeviation="10" result="coloredBlur"/>
                 <feMerge>
@@ -180,7 +180,7 @@ class ChronosGenerator {
 
         // Day number
         svg += `<text x="${dateZone.x}" y="${dateZone.y + dateSize * 0.9}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-family="${FONT_SANS}"
                 font-size="${dateSize}" font-weight="900" fill="${this.colors.text}">${dayText}</text>`;
 
         // Month and Year (positioned to the right of day number, smaller)
@@ -189,11 +189,11 @@ class ChronosGenerator {
         const metaY = dateZone.y + dateSize * 0.7;
 
         svg += `<text x="${metaX}" y="${metaY}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-family="${FONT_SANS}"
                 font-size="${metaSize}" font-weight="700" fill="${this.colors.accent}">${this.monthNames[this.currentDate.getMonth()]}</text>`;
 
         svg += `<text x="${metaX}" y="${metaY + metaSize * 1.3}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-family="${FONT_SANS}"
                 font-size="${metaSize}" font-weight="400" fill="${this.colors.secondary}">${this.currentYear}</text>`;
 
         // Progress bar
@@ -216,11 +216,11 @@ class ChronosGenerator {
 
         // Left: Finished
         svg += `<text x="${dateZone.x}" y="${statsY + statNumSize}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-family="${FONT_SANS}"
                 font-size="${statNumSize}" font-weight="900" fill="${this.colors.text}">${this.dayOfYear}</text>`;
 
         svg += `<text x="${dateZone.x}" y="${statsY + statNumSize + statLabelSize + 10}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-family="${FONT_SANS}"
                 font-size="${statLabelSize}" font-weight="500" fill="${this.colors.secondary}">FINISHED</text>`;
 
         // Right: Remaining
@@ -228,11 +228,11 @@ class ChronosGenerator {
         const remainingNumWidth = remainingText.length * statNumSize * 0.6;
 
         svg += `<text x="${dateZone.x + barWidth - remainingNumWidth}" y="${statsY + statNumSize}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-family="${FONT_SANS}"
                 font-size="${statNumSize}" font-weight="900" fill="${this.colors.text}">${remainingText}</text>`;
 
         svg += `<text x="${dateZone.x + barWidth}" y="${statsY + statNumSize + statLabelSize + 10}"
-                text-anchor="end" font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                text-anchor="end" font-family="${FONT_SANS}"
                 font-size="${statLabelSize}" font-weight="500" fill="${this.colors.secondary}">REMAINING</text>`;
 
         // Quote - positioned at bottom of date zone
@@ -241,7 +241,7 @@ class ChronosGenerator {
 
         // Quote mark
         svg += `<text x="${dateZone.x}" y="${quoteY}"
-                font-family="Liberation Serif, DejaVu Serif, Georgia, serif"
+                font-family="${FONT_SERIF}"
                 font-size="${barWidth * 0.2}" font-weight="900" fill="${this.colors.muted}" opacity="0.3">"</text>`;
 
         // Quote text (wrapped)
@@ -263,7 +263,7 @@ class ChronosGenerator {
 
         lines.forEach((l, i) => {
             svg += `<text x="${dateZone.x + (barWidth * 0.12)}" y="${quoteY + (barWidth * 0.1) + i * quoteSize * 1.3}"
-                    font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                    font-family="${FONT_SANS}"
                     font-size="${quoteSize}" font-weight="300" font-style="italic"
                     fill="${this.colors.text}" opacity="0.7">${l}</text>`;
         });
@@ -295,9 +295,8 @@ class ChronosGenerator {
 
         let svg = `<svg width="${this.width}" height="${this.height}" xmlns="http://www.w3.org/2000/svg">`;
 
-        // Add embedded fonts and filters
-        svg += generateFontFaceSVG();
-        svg += `
+        // Add filters
+        svg += `<defs>
             <filter id="glow">
                 <feGaussianBlur stdDeviation="10" result="coloredBlur"/>
                 <feMerge>
@@ -316,7 +315,7 @@ class ChronosGenerator {
 
         // Day number
         svg += `<text x="${dateZone.x}" y="${dateZone.y + dateSize * 0.9}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-family="${FONT_SANS}"
                 font-size="${dateSize}" font-weight="900" fill="${this.colors.text}">${dayText}</text>`;
 
         // Month and Year
@@ -325,11 +324,11 @@ class ChronosGenerator {
         const metaY = dateZone.y + dateSize * 0.7;
 
         svg += `<text x="${metaX}" y="${metaY}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-family="${FONT_SANS}"
                 font-size="${metaSize}" font-weight="700" fill="${this.colors.accent}">${this.monthNames[this.currentDate.getMonth()]}</text>`;
 
         svg += `<text x="${metaX}" y="${metaY + metaSize * 1.3}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-family="${FONT_SANS}"
                 font-size="${metaSize}" font-weight="400" fill="${this.colors.secondary}">${this.currentYear}</text>`;
 
         // Progress bar
@@ -350,11 +349,11 @@ class ChronosGenerator {
         const labelSize = metaSize * 0.7;
 
         svg += `<text x="${dateZone.x}" y="${labelY + labelSize}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-family="${FONT_SANS}"
                 font-size="${labelSize}" font-weight="700" fill="${this.colors.secondary}">${this.dayOfYear} FINISHED</text>`;
 
         svg += `<text x="${dateZone.x + barWidth}" y="${labelY + labelSize}" text-anchor="end"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-family="${FONT_SANS}"
                 font-size="${labelSize}" font-weight="700" fill="${this.colors.secondary}">${this.remainingDays} REMAINING</text>`;
 
         // Quote - positioned right after the stats labels
@@ -363,7 +362,7 @@ class ChronosGenerator {
 
         // Wrap quote text to fit within width
         svg += `<text x="${dateZone.x}" y="${quoteY}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-family="${FONT_SANS}"
                 font-size="${quoteSize}" font-weight="300" font-style="italic"
                 fill="${this.colors.text}" opacity="0.6">"${this.quote}"</text>`;
 
@@ -417,7 +416,7 @@ class ChronosGenerator {
             const labelX = padding + (i * colWidth) + (colWidth / 2);
             svg += `<text x="${labelX}" y="${labelY + labelSize * 0.6}"
                     text-anchor="middle"
-                    font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                    font-family="${FONT_SANS}"
                     font-size="${labelSize}" font-weight="bold"
                     fill="${color}">${day}</text>`;
         });
@@ -487,7 +486,7 @@ class ChronosGenerator {
 
         svg += `<text x="${this.width / 2}" y="${bottomY}"
                 text-anchor="middle"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                font-family="${FONT_SANS}"
                 font-size="${infoSize}" font-weight="500"
                 fill="${this.colors.accent}">${this.remainingDays}d left · ${percentComplete}%</text>`;
 
@@ -521,7 +520,7 @@ class ChronosGenerator {
                 const labelY = y + (i * rowHeight) + (rowHeight / 2);
                 svg += `<text x="${x + labelSize / 2}" y="${labelY + labelSize * 0.2}"
                         text-anchor="middle"
-                        font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                        font-family="${FONT_SANS}"
                         font-size="${labelSize * 0.5}" font-weight="bold"
                         fill="${color}">${day}</text>`;
             });
@@ -536,7 +535,7 @@ class ChronosGenerator {
                 const labelX = x + (i * colWidth) + (colWidth / 2);
                 svg += `<text x="${labelX}" y="${y + labelSize * 0.6}"
                         text-anchor="middle"
-                        font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                        font-family="${FONT_SANS}"
                         font-size="${labelSize * 0.5}" font-weight="bold"
                         fill="${color}">${day}</text>`;
             });
