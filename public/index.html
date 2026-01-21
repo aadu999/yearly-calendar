@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yearly Calendar Generator API</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 50px;
+            max-width: 800px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #2C3E50;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            color: #7F8C8D;
+            margin-bottom: 40px;
+            font-size: 1.2em;
+        }
+        .feature {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #3498DB;
+        }
+        .feature h3 {
+            color: #2C3E50;
+            margin-bottom: 10px;
+        }
+        .endpoint {
+            background: #2C3E50;
+            color: #ECF0F1;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            overflow-x: auto;
+            font-size: 0.9em;
+        }
+        .button {
+            display: inline-block;
+            background: #3498DB;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            margin: 10px 10px 10px 0;
+            transition: background 0.3s;
+        }
+        .button:hover {
+            background: #2980B9;
+        }
+        .badge {
+            display: inline-block;
+            background: #27AE60;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📅 Yearly Calendar Generator</h1>
+        <p class="subtitle">Generate minimalist 4K calendar images via API</p>
+
+        <div class="feature">
+            <h3>🚀 Quick Test</h3>
+            <p>Try generating a calendar right now:</p>
+            <div class="endpoint" id="testUrl"></div>
+            <a href="#" class="button" id="testButton">Generate Sample Calendar</a>
+        </div>
+
+        <div class="feature">
+            <h3>📖 API Endpoints</h3>
+
+            <p><strong>Generate Calendar:</strong></p>
+            <div class="endpoint">GET /calendar/generate?year=2024&device=laptop&completed=1,15,30</div>
+
+            <p style="margin-top: 15px;"><strong>Parameters:</strong></p>
+            <ul style="margin-left: 20px; margin-top: 10px;">
+                <li><code>year</code> - Year (1900-2100)</li>
+                <li><code>device</code> - "laptop" (3840×2160) or "mobile" (2160×3840)</li>
+                <li><code>completed</code> - Comma-separated days (dates or numbers)</li>
+            </ul>
+        </div>
+
+        <div class="feature">
+            <h3>✨ Features</h3>
+            <ul style="margin-left: 20px;">
+                <li>🖼️ 4K resolution (3840×2160 or 2160×3840)</li>
+                <li>📱 Optimized for laptop and mobile</li>
+                <li>✅ Track completed vs available days</li>
+                <li>🎨 Minimalist design</li>
+                <li>⚡ Fast serverless generation</li>
+            </ul>
+        </div>
+
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="/api" class="button">API Documentation</a>
+            <a href="https://github.com/aadu999/yearly-calendar" class="button" style="background: #2C3E50;">GitHub</a>
+        </div>
+
+        <p style="margin-top: 30px; text-align: center; color: #7F8C8D; font-size: 0.9em;">
+            <span class="badge">LIVE</span> Deployed on Vercel
+        </p>
+    </div>
+
+    <script>
+        const baseUrl = window.location.origin;
+        const testUrl = `${baseUrl}/calendar/generate?year=2024&device=laptop&completed=1,15,30,45,60`;
+        document.getElementById('testUrl').textContent = testUrl;
+        document.getElementById('testButton').href = testUrl;
+    </script>
+</body>
+</html>
