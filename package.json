@@ -1,19 +1,21 @@
 {
-  "name": "yearly-calendar-generator",
-  "version": "1.0.0",
-  "description": "Minimalist yearly calendar generator with 4K image export",
+  "name": "chronos-4k",
+  "version": "2.0.0",
+  "description": "Chronos 4K - Ultra-modern year progress visualization with Matrix grid",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
-    "test": "node src/test.js"
+    "dev": "nodemon src/server.js"
   },
   "keywords": [
-    "calendar",
-    "yearly",
+    "chronos",
+    "year-progress",
+    "matrix-grid",
     "minimalist",
     "4k",
-    "image-generation"
+    "wallpaper",
+    "dashboard",
+    "visualization"
   ],
   "author": "",
   "license": "MIT",
