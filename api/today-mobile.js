@@ -4,13 +4,9 @@
  */
 
 const ChronosGenerator = require('../src/chronosGenerator');
-const { initFonts } = require('../src/init-fonts');
 
 module.exports = async (req, res) => {
     try {
-        // Initialize fonts at request time
-        initFonts();
-
         const theme = req.query.theme || 'cyber';
         const shape = req.query.shape || 'rounded';
 
@@ -24,7 +20,7 @@ module.exports = async (req, res) => {
         const buffer = await generator.generate();
 
         res.setHeader('Content-Type', 'image/png');
-        res.setHeader('Content-Disposition', `attachment; filename="chronos-today-mobile-${theme}.png"`);
+        res.setHeader('Content-Disposition', 'inline');
         res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate');
         res.send(buffer);
 

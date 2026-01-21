@@ -1,5 +1,4 @@
 const ChronosGenerator = require('../src/chronosGenerator');
-const { initFonts } = require('../src/init-fonts');
 
 /**
  * Vercel Serverless Function for Chronos 4K Generation
@@ -18,8 +17,6 @@ module.exports = async (req, res) => {
     }
 
     try {
-        // Initialize fonts at request time
-        initFonts();
 
         // Parse query parameters
         const year = parseInt(req.query.year) || new Date().getFullYear();
