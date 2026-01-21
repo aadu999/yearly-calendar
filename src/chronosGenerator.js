@@ -2,7 +2,9 @@ const sharp = require('sharp');
 const { initFonts } = require('./init-fonts');
 
 // Initialize fonts for serverless environments
+console.log('[ChronosGenerator] Initializing fonts...');
 initFonts();
+console.log('[ChronosGenerator] Sharp version:', sharp.versions);
 
 // Quote Database - must match client exactly
 const QUOTES = [
