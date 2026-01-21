@@ -1,4 +1,8 @@
 const sharp = require('sharp');
+const { initFonts } = require('./init-fonts');
+
+// Initialize fonts for serverless environments
+initFonts();
 
 // Quote Database
 const QUOTES = [
