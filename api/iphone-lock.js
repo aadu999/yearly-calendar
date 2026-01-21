@@ -4,9 +4,13 @@
  */
 
 const ChronosGenerator = require('../src/chronosGenerator');
+const { initFonts } = require('../src/init-fonts');
 
 module.exports = async (req, res) => {
     try {
+        // Initialize fonts at request time
+        initFonts();
+
         const theme = req.query.theme || 'cyber';
         const shape = req.query.shape || 'circle';
 
@@ -28,7 +32,8 @@ module.exports = async (req, res) => {
         console.error('Error generating iPhone lock screen wallpaper:', error);
         res.status(500).json({
             error: 'Failed to generate wallpaper',
-            message: error.message
+            message: error.message,
+            stack: error.stack
         });
     }
 };
