@@ -345,14 +345,42 @@ class ChronosGenerator {
                 font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
                 font-size="${labelSize}" font-weight="700" fill="${this.colors.secondary}">${this.remainingDays} REMAINING</text>`;
 
-        // Quote
-        const quoteY = labelY + (metaSize * 1.2);
+        // Quote - ensure it stays within date zone boundaries
         const quoteSize = metaSize * 0.6;
+        const quoteY = labelY + labelSize + (metaSize * 0.8);
+        const maxQuoteY = dateZone.y + dateZone.height - quoteSize;
+        const safeQuoteY = Math.min(quoteY, maxQuoteY);
 
-        svg += `<text x="${dateZone.x}" y="${quoteY + quoteSize}"
-                font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
-                font-size="${quoteSize}" font-weight="300" font-style="italic"
-                fill="${this.colors.text}" opacity="0.6">"${this.quote}"</text>`;
+        // Wrap quote text to fit within available space
+        const words = this.quote.split(' ');
+        let line = '';
+        let lines = [];
+        const maxCharsPerLine = 45;
+
+        for (let word of words) {
+            const testLine = line + word + ' ';
+            if (testLine.length > maxCharsPerLine && line.length > 0) {
+                lines.push(line.trim());
+                line = word + ' ';
+            } else {
+                line = testLine;
+            }
+        }
+        if (line.length > 0) lines.push(line.trim());
+
+        // Only render lines that fit within the date zone
+        const lineHeight = quoteSize * 1.2;
+        const availableLines = Math.floor((maxQuoteY - safeQuoteY) / lineHeight) + 1;
+        const linesToRender = lines.slice(0, Math.max(1, availableLines));
+
+        linesToRender.forEach((l, i) => {
+            const prefix = i === 0 ? '"' : '';
+            const suffix = i === linesToRender.length - 1 ? '"' : '';
+            svg += `<text x="${dateZone.x}" y="${safeQuoteY + (i * lineHeight)}"
+                    font-family="Liberation Sans, DejaVu Sans, Arial, sans-serif"
+                    font-size="${quoteSize}" font-weight="300" font-style="italic"
+                    fill="${this.colors.text}" opacity="0.6">${prefix}${l}${suffix}</text>`;
+        });
 
         // Matrix Grid
         svg += this.generateMatrixSVG(gridZone.x, gridZone.y, gridZone.width, gridZone.height, false);
