@@ -1,23 +1,7 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "api/**/*.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/calendar/generate",
-      "dest": "/api/generate"
-    },
-    {
-      "src": "/health",
-      "dest": "/api/health"
-    },
-    {
-      "src": "/",
-      "dest": "/api/index"
-    }
+  "rewrites": [
+    { "source": "/calendar/generate", "destination": "/api/generate" },
+    { "source": "/health", "destination": "/api/health" },
+    { "source": "/", "destination": "/api/index" }
   ]
 }
