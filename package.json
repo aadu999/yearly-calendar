@@ -1,0 +1,27 @@
+{
+  "name": "yearly-calendar-generator",
+  "version": "1.0.0",
+  "description": "Minimalist yearly calendar generator with 4K image export",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "node src/test.js"
+  },
+  "keywords": [
+    "calendar",
+    "yearly",
+    "minimalist",
+    "4k",
+    "image-generation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "sharp": "^0.33.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
