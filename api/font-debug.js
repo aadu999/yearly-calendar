@@ -5,6 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const { initFonts } = require('../src/init-fonts');
 
 module.exports = async (req, res) => {
     const debug = {
@@ -17,10 +18,18 @@ module.exports = async (req, res) => {
         bundledFonts: [],
         tmpFonts: [],
         fcList: null,
-        sharp: null
+        sharp: null,
+        initFontsResult: null
     };
 
     try {
+        // Initialize fonts first
+        try {
+            initFonts();
+            debug.initFontsResult = 'success';
+        } catch (err) {
+            debug.initFontsResult = 'error: ' + err.message;
+        }
         // Check bundled fonts
         const fontsDir = path.join(__dirname, '../fonts');
         if (fs.existsSync(fontsDir)) {
