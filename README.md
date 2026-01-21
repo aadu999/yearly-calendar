@@ -273,6 +273,39 @@ Potential features for future versions:
 - PDF export
 - Custom fonts
 
+## 🚀 Deployment
+
+This application is ready for deployment on multiple free platforms:
+
+### One-Click Deploy:
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/aadu999/yearly-calendar)
+
+### Quick Deploy Options:
+
+**Vercel (Recommended - Serverless):**
+```bash
+npm install -g vercel
+vercel
+```
+
+**Railway (Traditional Server):**
+- Connect GitHub repo at [railway.app](https://railway.app)
+- Auto-deploys on push
+
+**Render:**
+- Create Web Service at [render.com](https://render.com)
+- Build: `npm install`, Start: `npm start`
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed instructions and platform comparisons.
+
+### Deployment Features:
+- ✅ Vercel serverless functions configured (`/api` directory)
+- ✅ Traditional Express server (`npm start`)
+- ✅ Works on Netlify, Railway, Render, Fly.io
+- ✅ No configuration needed for most platforms
+- ✅ Automatic HTTPS and CDN on all platforms
+
 ## 💡 Tips
 
 1. **Performance**: Generating 4K images takes ~1-2 seconds. Consider caching frequently requested calendars.
@@ -282,6 +315,8 @@ Potential features for future versions:
 3. **Completed Days**: For better performance with many completed days, consider using day numbers instead of date strings.
 
 4. **Integration**: The API is stateless, making it perfect for serverless deployments.
+
+5. **Deployment**: Use Vercel for best performance, Railway for always-on server.
 
 ## 📞 Support
 
