@@ -1,7 +1,18 @@
 {
   "rewrites": [
-    { "source": "/calendar/generate", "destination": "/api/generate" },
-    { "source": "/health", "destination": "/api/health" },
-    { "source": "/", "destination": "/api/index" }
+    { "source": "/api/generate", "destination": "/api/generate" },
+    { "source": "/api/info", "destination": "/api/index" },
+    { "source": "/api", "destination": "/api/index" },
+    { "source": "/health", "destination": "/api/health" }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
+      ]
+    }
   ]
 }
