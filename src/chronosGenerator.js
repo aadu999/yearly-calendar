@@ -2,19 +2,7 @@
 const sharp = require('sharp');
 const TextToSVG = require('text-to-svg');
 const path = require('path');
-const { getDailyContent } = require('./groqService');
-
-// Fallback quotes
-const FALLBACK_QUOTES = [
-    "The future depends on what you do today.",
-    "Time is the most valuable thing a man can spend.",
-    "Action is the foundational key to all success.",
-    "Don't count the days, make the days count.",
-    "Your time is limited, so don't waste it.",
-    "Focus on being productive instead of busy.",
-    "Simplicity is the ultimate sophistication.",
-    "Do it now. Sometimes 'later' becomes 'never'."
-];
+const { getDailyQuote } = require('./quote-reader');
 
 // Theme definitions
 const THEMES = {
@@ -85,7 +73,10 @@ class ChronosGenerator {
             'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'
         ];
 
-        this.quote = FALLBACK_QUOTES[this.dayOfYear % FALLBACK_QUOTES.length];
+        // Get daily quote from CSV with author
+        const quoteData = getDailyQuote(this.dayOfYear);
+        this.quote = quoteData.text;
+        this.quoteAuthor = quoteData.author;
 
         // Initialize font engines
         try {
@@ -167,13 +158,6 @@ class ChronosGenerator {
         });
     }
 
-    async initializeQuote() {
-        try {
-            this.quote = await getDailyContent(this.dayOfYear);
-        } catch (error) {
-            console.error('[ChronosGenerator] Error getting quote:', error);
-        }
-    }
 
     isLeapYear(year) {
         return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
@@ -201,7 +185,6 @@ class ChronosGenerator {
     }
 
     async generate() {
-        await this.initializeQuote();
         let svg;
         if (this.layout === 'mobile') {
             svg = this.generateMobileSVG();
@@ -232,18 +215,21 @@ class ChronosGenerator {
         svg += `<defs><filter id="glow"><feGaussianBlur stdDeviation="10" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
         svg += `<rect width="${this.width}" height="${this.height}" fill="${this.colors.bg}"/>`;
 
-        const dateSize = dateZone.width * 0.4;
+        // Date Zone Content - Improved layout
+        const dateSize = dateZone.width * 0.50; // Bigger date (was 0.4)
         const dayText = this.currentDate.getDate().toString().padStart(2, '0');
 
-        svg += `<path fill="${this.colors.text}" d="${this.textPath(dayText, dateZone.x, dateZone.y + dateSize * 0.9, dateSize, { fontWeight: 'bold' })}"/>`;
+        // Day number - positioned higher
+        svg += `<path fill="${this.colors.text}" d="${this.textPath(dayText, dateZone.x, dateZone.y + dateSize * 0.85, dateSize, { fontWeight: 'bold' })}"/>`;
 
-        const metaSize = dateSize * 0.25;
+        // Month and Year - better alignment with proper spacing
+        const metaSize = dateSize * 0.28; // Slightly larger (was 0.25)
         const dayMetrics = this.textToSVGBold.getMetrics(dayText, { fontSize: dateSize });
-        const metaX = dateZone.x + dayMetrics.width + (metaSize * 0.5);
-        const metaY = dateZone.y + dateSize * 0.7;
+        const metaX = dateZone.x + dayMetrics.width + (metaSize * 0.4); // Better spacing
+        const metaBaseY = dateZone.y + dateSize * 0.60; // Aligned higher
 
-        svg += `<path fill="${this.colors.accent}" d="${this.textPath(this.monthNames[this.currentDate.getMonth()], metaX, metaY, metaSize, { fontWeight: 'bold' })}"/>`;
-        svg += `<path fill="${this.colors.secondary}" d="${this.textPath(this.currentYear.toString(), metaX, metaY + metaSize * 1.3, metaSize, { fontWeight: 'normal' })}"/>`;
+        svg += `<path fill="${this.colors.accent}" d="${this.textPath(this.monthNames[this.currentDate.getMonth()], metaX, metaBaseY, metaSize, { fontWeight: 'bold' })}"/>`;
+        svg += `<path fill="${this.colors.secondary}" d="${this.textPath(this.currentYear.toString(), metaX, metaBaseY + metaSize * 1.3, metaSize, { fontWeight: 'normal' })}"/>`;
 
         const barY = dateZone.y + dateSize + (dateZone.height * 0.08);
         const barHeight = dateZone.width * 0.06;
@@ -263,17 +249,27 @@ class ChronosGenerator {
         svg += `<path fill="${this.colors.text}" d="${this.textPath(remainingText, dateZone.x + barWidth, statsY + statNumSize, statNumSize, { fontWeight: 'bold', anchor: 'right' })}"/>`;
         svg += `<path fill="${this.colors.secondary}" d="${this.textPath('REMAINING', dateZone.x + barWidth, statsY + statNumSize + statLabelSize + 10, statLabelSize, { fontWeight: 'normal', anchor: 'right' })}"/>`;
 
-        const quoteY = dateZone.y + dateZone.height - (barWidth * 0.3);
+        // Quote - positioned at bottom of date zone
+        const quoteY = dateZone.y + dateZone.height - (barWidth * 0.35);
         const quoteSize = barWidth * 0.065;
 
-        // Quote mark
-        svg += `<path fill="${this.colors.muted}" opacity="0.3" d="${this.textPath('"', dateZone.x, quoteY, barWidth * 0.2, { fontWeight: 'bold' })}"/>`;
+        // Quote mark - positioned closer to text
+        const quoteMarkSize = barWidth * 0.15; // Smaller quote mark (was 0.2)
+        const quoteMarkX = dateZone.x + (barWidth * 0.02);
+        svg += `<path fill="${this.colors.muted}" opacity="0.25" d="${this.textPath('"', quoteMarkX, quoteY, quoteMarkSize, { fontWeight: 'bold' })}"/>`;
 
-        // Wrapped Quote
-        const quoteLines = this.wrapText(this.quote, dateZone.width, quoteSize);
+        // Quote text (wrapped) - moved closer to quote mark
+        const quoteTextX = dateZone.x + (barWidth * 0.08); // Closer to quote mark (was 0.12)
+        const quoteLines = this.wrapText(this.quote, dateZone.width * 0.85, quoteSize);
+        let currentY = quoteY + (barWidth * 0.1);
         quoteLines.forEach((l, i) => {
-            svg += `<path fill="${this.colors.text}" opacity="0.7" d="${this.textPath(l, dateZone.x + (barWidth * 0.12), quoteY + (barWidth * 0.1) + i * quoteSize * 1.3, quoteSize, { fontWeight: 'normal' })}"/>`;
+            svg += `<path fill="${this.colors.text}" opacity="0.7" d="${this.textPath(l, quoteTextX, currentY + i * quoteSize * 1.3, quoteSize, { fontWeight: 'normal' })}"/>`;
         });
+
+        // Author name - positioned below the quote
+        const authorY = currentY + (quoteLines.length * quoteSize * 1.3) + (quoteSize * 0.6);
+        const authorSize = quoteSize * 0.85;
+        svg += `<path fill="${this.colors.secondary}" opacity="0.8" d="${this.textPath('— ' + this.quoteAuthor, quoteTextX, authorY, authorSize, { fontWeight: 'normal' })}"/>`;
 
         svg += this.generateMatrixSVG(gridZone.x, gridZone.y, gridZone.width, gridZone.height, true);
         svg += '</svg>';
@@ -325,13 +321,26 @@ class ChronosGenerator {
         svg += `<path fill="${this.colors.secondary}" d="${this.textPath(this.dayOfYear + ' FINISHED', dateZone.x, labelY + labelSize, labelSize, { fontWeight: 'bold' })}"/>`;
         svg += `<path fill="${this.colors.secondary}" d="${this.textPath(this.remainingDays + ' REMAINING', dateZone.x + barWidth, labelY + labelSize, labelSize, { fontWeight: 'bold', anchor: 'right' })}"/>`;
 
+        // Quote - positioned right after the stats labels
         const quoteSize = metaSize * 0.6;
-        const quoteY = labelY + labelSize + (metaSize * 1.2);
-        const quoteLines = this.wrapText('"' + this.quote + '"', dateZone.width, quoteSize);
+        const quoteY = labelY + labelSize + (metaSize * 1.5);
 
+        // Quote mark
+        const quoteMarkSize = quoteSize * 1.5;
+        svg += `<path fill="${this.colors.muted}" opacity="0.25" d="${this.textPath('"', dateZone.x, quoteY, quoteMarkSize, { fontWeight: 'bold' })}"/>`;
+
+        // Quote text (wrapped for mobile)
+        const quoteTextX = dateZone.x + (quoteMarkSize * 0.5);
+        const quoteLines = this.wrapText(this.quote, dateZone.width * 0.9, quoteSize);
+        let mobileCurrentY = quoteY + (quoteSize * 0.4);
         quoteLines.forEach((l, i) => {
-            svg += `<path fill="${this.colors.text}" opacity="0.6" d="${this.textPath(l, dateZone.x, quoteY + i * quoteSize * 1.3, quoteSize, { fontWeight: 'normal' })}"/>`;
+            svg += `<path fill="${this.colors.text}" opacity="0.6" d="${this.textPath(l, quoteTextX, mobileCurrentY + i * quoteSize * 1.3, quoteSize, { fontWeight: 'normal' })}"/>`;
         });
+
+        // Author name - positioned below the quote
+        const mobileAuthorY = mobileCurrentY + (quoteLines.length * quoteSize * 1.3) + (quoteSize * 0.5);
+        const mobileAuthorSize = quoteSize * 0.85;
+        svg += `<path fill="${this.colors.secondary}" opacity="0.8" d="${this.textPath('— ' + this.quoteAuthor, quoteTextX, mobileAuthorY, mobileAuthorSize, { fontWeight: 'normal' })}"/>`;
 
         svg += this.generateMatrixSVG(gridZone.x, gridZone.y, gridZone.width, gridZone.height, false);
         svg += '</svg>';
