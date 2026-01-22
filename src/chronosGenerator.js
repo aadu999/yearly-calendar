@@ -220,16 +220,18 @@ class ChronosGenerator {
         const dayText = this.currentDate.getDate().toString().padStart(2, '0');
 
         // Day number
-        svg += `<path fill="${this.colors.text}" d="${this.textPath(dayText, dateZone.x, dateZone.y + dateSize * 0.85, dateSize, { fontWeight: 'bold' })}"/>`;
+        const dateBaselineY = dateZone.y + dateSize * 0.85;
+        svg += `<path fill="${this.colors.text}" d="${this.textPath(dayText, dateZone.x, dateBaselineY, dateSize, { fontWeight: 'bold' })}"/>`;
 
         // Month and Year - positioned to the right of date, properly aligned
         const metaSize = dateSize * 0.24; // Size for month/year
         const dayMetrics = this.textToSVGBold.getMetrics(dayText, { fontSize: dateSize });
         const metaX = dateZone.x + dayMetrics.width + (dateSize * 0.12); // Space after date
-        const metaBaseY = dateZone.y + dateSize * 0.58; // Aligned with middle of date
+        const monthY = dateZone.y + dateSize * 0.58; // Month positioned higher
 
-        svg += `<path fill="${this.colors.accent}" d="${this.textPath(this.monthNames[this.currentDate.getMonth()], metaX, metaBaseY, metaSize, { fontWeight: 'bold' })}"/>`;
-        svg += `<path fill="${this.colors.secondary}" d="${this.textPath(this.currentYear.toString(), metaX, metaBaseY + metaSize * 1.25, metaSize, { fontWeight: 'normal' })}"/>`;
+        svg += `<path fill="${this.colors.accent}" d="${this.textPath(this.monthNames[this.currentDate.getMonth()], metaX, monthY, metaSize, { fontWeight: 'bold' })}"/>`;
+        // Year baseline aligned with date baseline
+        svg += `<path fill="${this.colors.secondary}" d="${this.textPath(this.currentYear.toString(), metaX, dateBaselineY, metaSize, { fontWeight: 'normal' })}"/>`;
 
         const barY = dateZone.y + dateSize + (dateZone.height * 0.08);
         const barHeight = dateZone.width * 0.06;
@@ -298,16 +300,18 @@ class ChronosGenerator {
         const dateSize = dateZone.height * 0.45; // Adjusted for mobile
         const dayText = this.currentDate.getDate().toString().padStart(2, '0');
 
-        svg += `<path fill="${this.colors.text}" d="${this.textPath(dayText, dateZone.x, dateZone.y + dateSize * 0.85, dateSize, { fontWeight: 'bold' })}"/>`;
+        const dateBaselineY = dateZone.y + dateSize * 0.85;
+        svg += `<path fill="${this.colors.text}" d="${this.textPath(dayText, dateZone.x, dateBaselineY, dateSize, { fontWeight: 'bold' })}"/>`;
 
         // Month and Year - positioned to the right of date
         const metaSize = dateSize * 0.24;
         const dayMetrics = this.textToSVGBold.getMetrics(dayText, { fontSize: dateSize });
         const metaX = dateZone.x + dayMetrics.width + (dateSize * 0.12);
-        const metaBaseY = dateZone.y + dateSize * 0.58;
+        const monthY = dateZone.y + dateSize * 0.58;
 
-        svg += `<path fill="${this.colors.accent}" d="${this.textPath(this.monthNames[this.currentDate.getMonth()], metaX, metaBaseY, metaSize, { fontWeight: 'bold' })}"/>`;
-        svg += `<path fill="${this.colors.secondary}" d="${this.textPath(this.currentYear.toString(), metaX, metaBaseY + metaSize * 1.25, metaSize, { fontWeight: 'normal' })}"/>`;
+        svg += `<path fill="${this.colors.accent}" d="${this.textPath(this.monthNames[this.currentDate.getMonth()], metaX, monthY, metaSize, { fontWeight: 'bold' })}"/>`;
+        // Year baseline aligned with date baseline
+        svg += `<path fill="${this.colors.secondary}" d="${this.textPath(this.currentYear.toString(), metaX, dateBaselineY, metaSize, { fontWeight: 'normal' })}"/>`;
 
         const barY = dateZone.y + dateSize + (metaSize * 2.8);
         const barHeight = metaSize * 0.3;
