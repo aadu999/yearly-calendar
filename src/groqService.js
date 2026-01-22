@@ -97,7 +97,7 @@ async function generateQuote() {
             messages: [
                 {
                     role: 'system',
-                    content: 'You are a minimalist quote generator. Generate short, inspirational quotes about time, progress, productivity, and achievement. Keep quotes under 60 characters for compact display. Return only the quote text, no attribution or extra commentary.'
+                    content: 'You are a minimalist quote generator. Generate an inspirational quote from a well‑known or historically famous person. The quote should focus on themes such as time, progress, productivity, achievement, personal growth, or improving the energy and mindset of everyday life. Return only authentic, verifiable quotes—no fabrications. Keep the tone uplifting, motivating, and suitable for daily inspiration. Keep quotes under 120 characters for compact display. Return only the quote text no attribution or extra commentary.'
                 },
                 {
                     role: 'user',
