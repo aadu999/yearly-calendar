@@ -1,13 +1,14 @@
 const sharp = require('sharp');
 const { initFonts } = require('./init-fonts');
+const { getDailyQuote } = require('./quote-reader');
 
 // NOTE: Using Liberation fonts which we copy to /tmp/fonts via initFonts()
 // Vercel has NO pre-installed fonts, so we must use our bundled Liberation fonts
 const FONT_SANS = 'Liberation Sans, sans-serif';
 const FONT_SERIF = 'Liberation Serif, serif';
 
-// Quote Database - must match client exactly
-const QUOTES = [
+// Fallback quotes (if CSV file is not available)
+const FALLBACK_QUOTES = [
   "The future depends on what you do today.",
   "Time is the most valuable thing a man can spend.",
   "Action is the foundational key to all success.",
@@ -94,7 +95,10 @@ class ChronosGenerator {
             'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'
         ];
 
-        this.quote = QUOTES[this.dayOfYear % QUOTES.length];
+        // Get daily quote from CSV with author
+        this.quoteData = getDailyQuote(this.dayOfYear);
+        this.quote = this.quoteData.text;
+        this.quoteAuthor = this.quoteData.author;
     }
 
     isLeapYear(year) {
@@ -174,27 +178,27 @@ class ChronosGenerator {
         // Background
         svg += `<rect width="${this.width}" height="${this.height}" fill="${this.colors.bg}"/>`;
 
-        // Date Zone Content
-        const dateSize = dateZone.width * 0.4;
+        // Date Zone Content - Improved layout
+        const dateSize = dateZone.width * 0.50; // Bigger date (was 0.4)
         const dayText = this.currentDate.getDate().toString().padStart(2, '0');
 
-        // Day number
-        svg += `<text x="${dateZone.x}" y="${dateZone.y + dateSize * 0.9}"
+        // Day number - positioned higher
+        svg += `<text x="${dateZone.x}" y="${dateZone.y + dateSize * 0.85}"
                 font-family="${FONT_SANS}"
                 font-size="${dateSize}" font-weight="900" fill="${this.colors.text}">${dayText}</text>`;
 
-        // Month and Year (positioned to the right of day number, smaller)
-        const metaSize = dateSize * 0.25;
-        const metaX = dateZone.x + (dayText.length * dateSize * 0.6);
-        const metaY = dateZone.y + dateSize * 0.7;
+        // Month and Year - better alignment with proper spacing
+        const metaSize = dateSize * 0.28; // Slightly larger (was 0.25)
+        const metaX = dateZone.x + (dayText.length * dateSize * 0.55); // Better spacing
+        const metaBaseY = dateZone.y + dateSize * 0.60; // Aligned higher
 
-        svg += `<text x="${metaX}" y="${metaY}"
+        svg += `<text x="${metaX}" y="${metaBaseY}"
                 font-family="${FONT_SANS}"
                 font-size="${metaSize}" font-weight="700" fill="${this.colors.accent}">${this.monthNames[this.currentDate.getMonth()]}</text>`;
 
-        svg += `<text x="${metaX}" y="${metaY + metaSize * 1.3}"
+        svg += `<text x="${metaX}" y="${metaBaseY + metaSize * 1.2}"
                 font-family="${FONT_SANS}"
-                font-size="${metaSize}" font-weight="400" fill="${this.colors.secondary}">${this.currentYear}</text>`;
+                font-size="${metaSize * 0.95}" font-weight="400" fill="${this.colors.secondary}">${this.currentYear}</text>`;
 
         // Progress bar
         const barY = dateZone.y + dateSize + (dateZone.height * 0.08);
@@ -235,20 +239,23 @@ class ChronosGenerator {
                 text-anchor="end" font-family="${FONT_SANS}"
                 font-size="${statLabelSize}" font-weight="500" fill="${this.colors.secondary}">REMAINING</text>`;
 
-        // Quote - positioned at bottom of date zone
-        const quoteY = dateZone.y + dateZone.height - (barWidth * 0.3);
-        const quoteSize = barWidth * 0.065;
+        // Quote - positioned at bottom of date zone with improved layout
+        const quoteY = dateZone.y + dateZone.height - (barWidth * 0.35);
+        const quoteSize = barWidth * 0.070; // Slightly larger
+        const quoteMarkSize = barWidth * 0.15; // Smaller quote mark (was 0.2)
 
-        // Quote mark
-        svg += `<text x="${dateZone.x}" y="${quoteY}"
+        // Quote mark - positioned closer to text
+        const quoteMarkX = dateZone.x + (barWidth * 0.02);
+        svg += `<text x="${quoteMarkX}" y="${quoteY}"
                 font-family="${FONT_SERIF}"
-                font-size="${barWidth * 0.2}" font-weight="900" fill="${this.colors.muted}" opacity="0.3">"</text>`;
+                font-size="${quoteMarkSize}" font-weight="900" fill="${this.colors.muted}" opacity="0.25">"</text>`;
 
-        // Quote text (wrapped)
+        // Quote text (wrapped) - moved closer to quote mark
+        const quoteTextX = dateZone.x + (barWidth * 0.08); // Closer to quote mark (was 0.12)
         const words = this.quote.split(' ');
         let line = '';
         let lines = [];
-        const maxChars = 30;
+        const maxChars = 32; // Slightly more characters per line
 
         for (let word of words) {
             const testLine = line + word + ' ';
@@ -261,12 +268,22 @@ class ChronosGenerator {
         }
         if (line.length > 0) lines.push(line.trim());
 
+        // Render quote lines
+        let currentY = quoteY + (barWidth * 0.08);
         lines.forEach((l, i) => {
-            svg += `<text x="${dateZone.x + (barWidth * 0.12)}" y="${quoteY + (barWidth * 0.1) + i * quoteSize * 1.3}"
+            svg += `<text x="${quoteTextX}" y="${currentY + i * quoteSize * 1.3}"
                     font-family="${FONT_SANS}"
                     font-size="${quoteSize}" font-weight="300" font-style="italic"
-                    fill="${this.colors.text}" opacity="0.7">${l}</text>`;
+                    fill="${this.colors.text}" opacity="0.75">${l}</text>`;
         });
+
+        // Author name - positioned below the quote
+        const authorY = currentY + (lines.length * quoteSize * 1.3) + (quoteSize * 0.6);
+        const authorSize = quoteSize * 0.85;
+        svg += `<text x="${quoteTextX}" y="${authorY}"
+                font-family="${FONT_SANS}"
+                font-size="${authorSize}" font-weight="500"
+                fill="${this.colors.secondary}" opacity="0.8">— ${this.quoteAuthor}</text>`;
 
         // Matrix Grid
         svg += this.generateMatrixSVG(gridZone.x, gridZone.y, gridZone.width, gridZone.height, true);
@@ -356,15 +373,45 @@ class ChronosGenerator {
                 font-family="${FONT_SANS}"
                 font-size="${labelSize}" font-weight="700" fill="${this.colors.secondary}">${this.remainingDays} REMAINING</text>`;
 
-        // Quote - positioned right after the stats labels
-        const quoteSize = metaSize * 0.6;
+        // Quote - positioned right after the stats labels with author
+        const quoteSize = metaSize * 0.65; // Slightly larger
         const quoteY = labelY + labelSize + (metaSize * 1.2);
 
         // Wrap quote text to fit within width
-        svg += `<text x="${dateZone.x}" y="${quoteY}"
+        const words = this.quote.split(' ');
+        let line = '';
+        let quoteLines = [];
+        const maxChars = 45; // Adjusted for mobile width
+
+        for (let word of words) {
+            const testLine = line + word + ' ';
+            if (testLine.length > maxChars && line.length > 0) {
+                quoteLines.push(line.trim());
+                line = word + ' ';
+            } else {
+                line = testLine;
+            }
+        }
+        if (line.length > 0) quoteLines.push(line.trim());
+
+        // Render quote lines
+        let currentQuoteY = quoteY;
+        quoteLines.forEach((l, i) => {
+            const prefix = i === 0 ? '"' : '';
+            const suffix = i === quoteLines.length - 1 ? '"' : '';
+            svg += `<text x="${dateZone.x}" y="${currentQuoteY + i * quoteSize * 1.3}"
+                    font-family="${FONT_SANS}"
+                    font-size="${quoteSize}" font-weight="300" font-style="italic"
+                    fill="${this.colors.text}" opacity="0.65">${prefix}${l}${suffix}</text>`;
+        });
+
+        // Author name - positioned below the quote
+        const authorY = currentQuoteY + (quoteLines.length * quoteSize * 1.3) + (quoteSize * 0.5);
+        const authorSize = quoteSize * 0.85;
+        svg += `<text x="${dateZone.x}" y="${authorY}"
                 font-family="${FONT_SANS}"
-                font-size="${quoteSize}" font-weight="300" font-style="italic"
-                fill="${this.colors.text}" opacity="0.6">"${this.quote}"</text>`;
+                font-size="${authorSize}" font-weight="500"
+                fill="${this.colors.secondary}" opacity="0.75">— ${this.quoteAuthor}</text>`;
 
         // Matrix Grid
         svg += this.generateMatrixSVG(gridZone.x, gridZone.y, gridZone.width, gridZone.height, false);
