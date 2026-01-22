@@ -216,18 +216,20 @@ class ChronosGenerator {
         svg += `<rect width="${this.width}" height="${this.height}" fill="${this.colors.bg}"/>`;
 
         // Date Zone Content - Improved layout
-        const dateSize = dateZone.width * 0.50; // Bigger date (was 0.4)
+        const dateSize = dateZone.width * 0.45; // Adjusted to leave room for month/year
         const dayText = this.currentDate.getDate().toString().padStart(2, '0');
 
-        // Day number - positioned at top
-        svg += `<path fill="${this.colors.text}" d="${this.textPath(dayText, dateZone.x, dateZone.y + dateSize * 0.75, dateSize, { fontWeight: 'bold' })}"/>`;
+        // Day number
+        svg += `<path fill="${this.colors.text}" d="${this.textPath(dayText, dateZone.x, dateZone.y + dateSize * 0.85, dateSize, { fontWeight: 'bold' })}"/>`;
 
-        // Month and Year - positioned below the date number
-        const metaSize = dateSize * 0.20; // Adjusted size
-        const metaY = dateZone.y + dateSize * 0.85; // Below the date number
+        // Month and Year - positioned to the right of date, properly aligned
+        const metaSize = dateSize * 0.24; // Size for month/year
+        const dayMetrics = this.textToSVGBold.getMetrics(dayText, { fontSize: dateSize });
+        const metaX = dateZone.x + dayMetrics.width + (dateSize * 0.12); // Space after date
+        const metaBaseY = dateZone.y + dateSize * 0.58; // Aligned with middle of date
 
-        svg += `<path fill="${this.colors.accent}" d="${this.textPath(this.monthNames[this.currentDate.getMonth()], dateZone.x, metaY, metaSize, { fontWeight: 'bold' })}"/>`;
-        svg += `<path fill="${this.colors.secondary}" d="${this.textPath(this.currentYear.toString(), dateZone.x, metaY + metaSize * 1.2, metaSize, { fontWeight: 'normal' })}"/>`;
+        svg += `<path fill="${this.colors.accent}" d="${this.textPath(this.monthNames[this.currentDate.getMonth()], metaX, metaBaseY, metaSize, { fontWeight: 'bold' })}"/>`;
+        svg += `<path fill="${this.colors.secondary}" d="${this.textPath(this.currentYear.toString(), metaX, metaBaseY + metaSize * 1.25, metaSize, { fontWeight: 'normal' })}"/>`;
 
         const barY = dateZone.y + dateSize + (dateZone.height * 0.08);
         const barHeight = dateZone.width * 0.06;
@@ -293,16 +295,19 @@ class ChronosGenerator {
         svg += `<defs><filter id="glow"><feGaussianBlur stdDeviation="10" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
         svg += `<rect width="${this.width}" height="${this.height}" fill="${this.colors.bg}"/>`;
 
-        const dateSize = dateZone.height * 0.5;
+        const dateSize = dateZone.height * 0.45; // Adjusted for mobile
         const dayText = this.currentDate.getDate().toString().padStart(2, '0');
 
-        svg += `<path fill="${this.colors.text}" d="${this.textPath(dayText, dateZone.x, dateZone.y + dateSize * 0.75, dateSize, { fontWeight: 'bold' })}"/>`;
+        svg += `<path fill="${this.colors.text}" d="${this.textPath(dayText, dateZone.x, dateZone.y + dateSize * 0.85, dateSize, { fontWeight: 'bold' })}"/>`;
 
-        const metaSize = dateSize * 0.20;
-        const metaY = dateZone.y + dateSize * 0.85;
+        // Month and Year - positioned to the right of date
+        const metaSize = dateSize * 0.24;
+        const dayMetrics = this.textToSVGBold.getMetrics(dayText, { fontSize: dateSize });
+        const metaX = dateZone.x + dayMetrics.width + (dateSize * 0.12);
+        const metaBaseY = dateZone.y + dateSize * 0.58;
 
-        svg += `<path fill="${this.colors.accent}" d="${this.textPath(this.monthNames[this.currentDate.getMonth()], dateZone.x, metaY, metaSize, { fontWeight: 'bold' })}"/>`;
-        svg += `<path fill="${this.colors.secondary}" d="${this.textPath(this.currentYear.toString(), dateZone.x, metaY + metaSize * 1.2, metaSize, { fontWeight: 'normal' })}"/>`;
+        svg += `<path fill="${this.colors.accent}" d="${this.textPath(this.monthNames[this.currentDate.getMonth()], metaX, metaBaseY, metaSize, { fontWeight: 'bold' })}"/>`;
+        svg += `<path fill="${this.colors.secondary}" d="${this.textPath(this.currentYear.toString(), metaX, metaBaseY + metaSize * 1.25, metaSize, { fontWeight: 'normal' })}"/>`;
 
         const barY = dateZone.y + dateSize + (metaSize * 2.8);
         const barHeight = metaSize * 0.3;
